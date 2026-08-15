@@ -4,6 +4,7 @@ import { validate } from '../middleware/validate.js';
 import { createEvidenceSchema, batchCreateEvidenceSchema } from '../schemas/index.js';
 import { dbStore } from '../db/store.js';
 import { applyPagination } from '../utils/pagination.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const evidenceRouter = Router();
 
@@ -25,12 +26,7 @@ evidenceRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing evidences:', error);
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao listar evidências.',
-      });
+      handleRouteError(res, error, 'listEvidences');
     }
   }
 );
@@ -55,12 +51,7 @@ evidenceRouter.post(
       });
       res.status(201).json({ evidence });
     } catch (error: any) {
-      console.error('Error creating evidence:', error.message);
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error.message || 'Erro ao salvar evidência.',
-      });
+      handleRouteError(res, error, 'createEvidence');
     }
   }
 );
@@ -89,12 +80,8 @@ evidenceRouter.post(
       }
       res.status(201).json({ evidences: created });
     } catch (error: any) {
-      console.error('Error in batch create evidences:', error.message);
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error.message || 'Erro ao criar lote de evidências.',
-      });
+      handleRouteError(res, error, 'batchCreateEvidence');
     }
   }
 );
+

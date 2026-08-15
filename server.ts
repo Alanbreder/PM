@@ -45,11 +45,15 @@ async function startServer() {
 
   // Global Error Handler for API
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('[Product OS Server Error]:', err);
-    res.status(err.status || 500).json({
+    console.error('[Product OS Server Error]:', err?.message || err);
+    const statusCode = err.status && err.status >= 400 && err.status < 500 ? err.status : 500;
+    const errorCode = err.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST');
+    const safeMessage = statusCode === 500 ? 'Não foi possível concluir a operação.' : (err.message || 'Requisição inválida.');
+
+    res.status(statusCode).json({
       success: false,
-      error: err.code || 'INTERNAL_SERVER_ERROR',
-      message: err.message || 'Ocorreu um erro interno ao processar a requisição.',
+      error: errorCode,
+      message: safeMessage,
     });
   });
 

@@ -4,6 +4,7 @@ import { aiRateLimiter } from '../middleware/rate_limit.js';
 import { dbStore } from '../db/store.js';
 import { askProductAssistant } from '../services/gemini.service.js';
 import { askProductSchema } from '../schemas/index.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const askProductRouter = Router();
 
@@ -48,13 +49,9 @@ askProductRouter.post(
         answer,
       });
     } catch (error: any) {
-      console.error('Ask Product error:', error instanceof Error ? error.message : 'Erro no processamento de IA');
-      res.status(500).json({
-        success: false,
-        error: 'AI_SERVICE_ERROR',
-        message: error instanceof Error ? error.message : 'Erro ao processar consulta no assistente de produto.',
-      });
+      handleRouteError(res, error, 'askProduct');
     }
   }
 );
+
 

@@ -4,6 +4,7 @@ import { validate } from '../middleware/validate.js';
 import { createHypothesisSchema } from '../schemas/index.js';
 import { dbStore } from '../db/store.js';
 import { applyPagination } from '../utils/pagination.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const hypothesisRouter = Router();
 
@@ -25,12 +26,7 @@ hypothesisRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing hypotheses:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao listar hipóteses.',
-      });
+      handleRouteError(res, error, 'listHypotheses');
     }
   }
 );
@@ -55,12 +51,8 @@ hypothesisRouter.post(
       });
       res.status(201).json({ hypothesis });
     } catch (error: any) {
-      console.error('Error creating hypothesis:', error instanceof Error ? error.message : 'Erro ao criar');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao criar hipótese.',
-      });
+      handleRouteError(res, error, 'createHypothesis');
     }
   }
 );
+

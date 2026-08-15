@@ -3,6 +3,7 @@ import { authenticate, requireWorkspace } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createWorkspaceSchema, addWorkspaceMemberSchema, uuidParamSchema } from '../schemas/index.js';
 import { dbStore } from '../db/store.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const workspaceRouter = Router();
 
@@ -17,12 +18,7 @@ workspaceRouter.get(
       const workspaces = await dbStore.listWorkspacesForUser(user.id);
       res.json({ workspaces });
     } catch (error: any) {
-      console.error('Error listing workspaces:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao listar workspaces.',
-      });
+      handleRouteError(res, error, 'listWorkspacesForUser');
     }
   }
 );
@@ -40,12 +36,7 @@ workspaceRouter.post(
       const ws = await dbStore.createWorkspace(name, slug, user.id);
       res.status(201).json({ workspace: ws });
     } catch (error: any) {
-      console.error('Error creating workspace:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao criar workspace.',
-      });
+      handleRouteError(res, error, 'createWorkspace');
     }
   }
 );
@@ -71,12 +62,7 @@ workspaceRouter.get(
       }
       res.json({ workspace: ws, userRole: req.workspaceRole });
     } catch (error: any) {
-      console.error('Error fetching workspace:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao buscar workspace.',
-      });
+      handleRouteError(res, error, 'getWorkspaceById');
     }
   }
 );
@@ -88,7 +74,8 @@ workspaceRouter.post(
   validate({ params: uuidParamSchema, body: addWorkspaceMemberSchema }),
   requireWorkspace,
   async (req: Request, res: Response) => {
-    if (req.workspaceRole !== 'owner' && req.workspaceRole !== 'admin') {
+    const callerRole = req.workspaceRole;
+    if (callerRole !== 'owner' && callerRole !== 'admin') {
       res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -100,16 +87,22 @@ workspaceRouter.post(
     const workspaceId = req.params.id;
     const { user_id, role } = req.body;
 
+    // Regra estrita: Administradores NÃO podem promover ou convidar usuários como "owner"
+    if (callerRole === 'admin' && role === 'owner') {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: 'Administradores não possuem permissão para atribuir o papel de proprietário.',
+      });
+      return;
+    }
+
     try {
       const member = await dbStore.addMember(workspaceId, user_id, role);
       res.status(201).json({ member });
     } catch (error: any) {
-      console.error('Error adding member:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao adicionar membro.',
-      });
+      handleRouteError(res, error, 'addMember');
     }
   }
 );
+

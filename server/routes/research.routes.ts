@@ -6,6 +6,7 @@ import { createResearchSchema, uuidParamSchema, approveAnalysisSchema } from '..
 import { dbStore } from '../db/store.js';
 import { analyzeResearchContent } from '../services/gemini.service.js';
 import { applyPagination } from '../utils/pagination.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const researchRouter = Router();
 
@@ -26,12 +27,7 @@ researchRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing researches:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro interno ao listar pesquisas.',
-      });
+      handleRouteError(res, error, 'listResearches');
     }
   }
 );
@@ -59,12 +55,7 @@ researchRouter.get(
       const evidences = await dbStore.listEvidences(workspaceId, researchId);
       res.json({ research: { ...research, evidences } });
     } catch (error: any) {
-      console.error('Error fetching research:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao buscar pesquisa.',
-      });
+      handleRouteError(res, error, 'getResearchById');
     }
   }
 );
@@ -91,12 +82,7 @@ researchRouter.post(
       });
       res.status(201).json({ research });
     } catch (error: any) {
-      console.error('Error creating research:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao criar pesquisa.',
-      });
+      handleRouteError(res, error, 'createResearch');
     }
   }
 );
@@ -132,12 +118,7 @@ researchRouter.post(
         analysis,
       });
     } catch (error: any) {
-      console.error('Error analyzing research with AI:', error instanceof Error ? error.message : 'Erro na análise de IA');
-      res.status(500).json({
-        success: false,
-        error: 'AI_ANALYSIS_ERROR',
-        message: error instanceof Error ? error.message : 'Erro ao processar a pesquisa com a IA do Gemini.',
-      });
+      handleRouteError(res, error, 'analyzeResearch');
     }
   }
 );
@@ -169,12 +150,8 @@ researchRouter.post(
         saved_problems: result.saved_problems,
       });
     } catch (error: any) {
-      console.error('Error approving analysis:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Erro ao salvar os registros aprovados no banco.',
-      });
+      handleRouteError(res, error, 'saveApprovedAnalysis');
     }
   }
 );
+

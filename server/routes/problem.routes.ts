@@ -11,6 +11,7 @@ import {
 import { dbStore } from '../db/store.js';
 import { z } from 'zod';
 import { applyPagination } from '../utils/pagination.js';
+import { handleRouteError } from '../utils/errors.js';
 
 export const problemRouter = Router();
 
@@ -31,12 +32,7 @@ problemRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing problems:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro interno ao listar problemas.',
-      });
+      handleRouteError(res, error, 'listProblems');
     }
   }
 );
@@ -63,12 +59,7 @@ problemRouter.get(
       }
       res.json({ problem });
     } catch (error: any) {
-      console.error('Error fetching problem:', error instanceof Error ? error.message : 'Erro interno');
-      res.status(500).json({
-        success: false,
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Erro ao buscar problema.',
-      });
+      handleRouteError(res, error, 'getProblemById');
     }
   }
 );
@@ -91,12 +82,7 @@ problemRouter.post(
       );
       res.status(201).json({ problem });
     } catch (error: any) {
-      console.error('Error creating problem:', error instanceof Error ? error.message : 'Erro ao criar');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao criar problema.',
-      });
+      handleRouteError(res, error, 'createProblem');
     }
   }
 );
@@ -121,12 +107,7 @@ problemRouter.patch(
       );
       res.json({ problem: updated });
     } catch (error: any) {
-      console.error('Error updating problem:', error instanceof Error ? error.message : 'Erro ao atualizar');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao atualizar problema.',
-      });
+      handleRouteError(res, error, 'updateProblem');
     }
   }
 );
@@ -145,12 +126,7 @@ problemRouter.delete(
       await dbStore.deleteProblem(workspaceId, problemId);
       res.json({ success: true, message: 'Problema removido com sucesso.' });
     } catch (error: any) {
-      console.error('Error deleting problem:', error instanceof Error ? error.message : 'Erro ao excluir');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao excluir problema.',
-      });
+      handleRouteError(res, error, 'deleteProblem');
     }
   }
 );
@@ -170,12 +146,7 @@ problemRouter.post(
       const links = await dbStore.linkEvidencesToProblem(workspaceId, problemId, evidence_ids);
       res.json({ success: true, links });
     } catch (error: any) {
-      console.error('Error linking evidences:', error instanceof Error ? error.message : 'Erro ao vincular');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao vincular evidências.',
-      });
+      handleRouteError(res, error, 'linkEvidencesToProblem');
     }
   }
 );
@@ -199,12 +170,7 @@ problemRouter.delete(
       await dbStore.unlinkEvidenceFromProblem(workspaceId, problemId, evidenceId);
       res.json({ success: true, message: 'Evidência desvinculada do problema com sucesso.' });
     } catch (error: any) {
-      console.error('Error unlinking evidence:', error instanceof Error ? error.message : 'Erro ao desvincular');
-      res.status(400).json({
-        success: false,
-        error: 'BAD_REQUEST',
-        message: error instanceof Error ? error.message : 'Erro ao desvincular evidência.',
-      });
+      handleRouteError(res, error, 'unlinkEvidenceFromProblem');
     }
   }
 );

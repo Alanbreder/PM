@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, integer, jsonb, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, jsonb, index, unique, foreignKey } from 'drizzle-orm/pg-core';
 
 // Users table (synchronized from Firebase Auth or local auth)
 export const users = pgTable('users', {
@@ -50,6 +50,7 @@ export const researches = pgTable('researches', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_researches_workspace_id').on(table.workspaceId),
+  unique('uq_researches_id_workspace').on(table.id, table.workspaceId),
 ]);
 
 // Evidences (Fatos atômicos extraídos das pesquisas)
@@ -70,6 +71,12 @@ export const evidences = pgTable('evidences', {
 }, (table) => [
   index('idx_evidences_workspace_id').on(table.workspaceId),
   index('idx_evidences_research_id').on(table.researchId),
+  unique('uq_evidences_id_workspace').on(table.id, table.workspaceId),
+  foreignKey({
+    columns: [table.researchId, table.workspaceId],
+    foreignColumns: [researches.id, researches.workspaceId],
+    name: 'fk_evidences_research_ws',
+  }).onDelete('cascade'),
 ]);
 
 // Problems (Dores e necessidades mapeadas)
@@ -86,6 +93,7 @@ export const problems = pgTable('problems', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_problems_workspace_id').on(table.workspaceId),
+  unique('uq_problems_id_workspace').on(table.id, table.workspaceId),
 ]);
 
 // Problem Evidences (N:N Junction Table)
@@ -106,6 +114,16 @@ export const problemEvidences = pgTable('problem_evidences', {
   index('idx_problem_evidences_workspace_id').on(table.workspaceId),
   index('idx_problem_evidences_problem_id').on(table.problemId),
   index('idx_problem_evidences_evidence_id').on(table.evidenceId),
+  foreignKey({
+    columns: [table.problemId, table.workspaceId],
+    foreignColumns: [problems.id, problems.workspaceId],
+    name: 'fk_problem_evidences_problem_ws',
+  }).onDelete('cascade'),
+  foreignKey({
+    columns: [table.evidenceId, table.workspaceId],
+    foreignColumns: [evidences.id, evidences.workspaceId],
+    name: 'fk_problem_evidences_evidence_ws',
+  }).onDelete('cascade'),
 ]);
 
 // Opportunities (Áreas de oportunidade de valor / resultado)
@@ -121,6 +139,7 @@ export const opportunities = pgTable('opportunities', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_opportunities_workspace_id').on(table.workspaceId),
+  unique('uq_opportunities_id_workspace').on(table.id, table.workspaceId),
 ]);
 
 // Opportunity Problems (N:N Junction Table)
@@ -141,6 +160,16 @@ export const opportunityProblems = pgTable('opportunity_problems', {
   index('idx_opportunity_problems_workspace_id').on(table.workspaceId),
   index('idx_opportunity_problems_opportunity_id').on(table.opportunityId),
   index('idx_opportunity_problems_problem_id').on(table.problemId),
+  foreignKey({
+    columns: [table.opportunityId, table.workspaceId],
+    foreignColumns: [opportunities.id, opportunities.workspaceId],
+    name: 'fk_opportunity_problems_opp_ws',
+  }).onDelete('cascade'),
+  foreignKey({
+    columns: [table.problemId, table.workspaceId],
+    foreignColumns: [problems.id, problems.workspaceId],
+    name: 'fk_opportunity_problems_problem_ws',
+  }).onDelete('cascade'),
 ]);
 
 // Hypotheses (Hipóteses com métricas de validação)
@@ -161,6 +190,12 @@ export const hypotheses = pgTable('hypotheses', {
 }, (table) => [
   index('idx_hypotheses_workspace_id').on(table.workspaceId),
   index('idx_hypotheses_opportunity_id').on(table.opportunityId),
+  unique('uq_hypotheses_id_workspace').on(table.id, table.workspaceId),
+  foreignKey({
+    columns: [table.opportunityId, table.workspaceId],
+    foreignColumns: [opportunities.id, opportunities.workspaceId],
+    name: 'fk_hypotheses_opp_ws',
+  }).onDelete('cascade'),
 ]);
 
 // Experiments (Experimentos de validação de hipóteses)
@@ -186,6 +221,12 @@ export const experiments = pgTable('experiments', {
 }, (table) => [
   index('idx_experiments_workspace_id').on(table.workspaceId),
   index('idx_experiments_hypothesis_id').on(table.hypothesisId),
+  unique('uq_experiments_id_workspace').on(table.id, table.workspaceId),
+  foreignKey({
+    columns: [table.hypothesisId, table.workspaceId],
+    foreignColumns: [hypotheses.id, hypotheses.workspaceId],
+    name: 'fk_experiments_hyp_ws',
+  }).onDelete('cascade'),
 ]);
 
 // Relations definitions

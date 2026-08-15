@@ -1376,115 +1376,166 @@ class PostgresStore {
     }>
   ): Promise<Experiment> {
     try {
-      const existing = await this.getExperimentById(workspaceId, experimentId);
-      if (!existing) {
-        throw new Error('Experimento não encontrado neste workspace.');
-      }
-
-      const currentStatus = existing.status;
-      const nextStatus = data.status ?? currentStatus;
-
-      // 1. Regras de Transição de Ciclo de Vida:
-      // draft -> running
-      // running -> completed
-      // draft -> cancelled
-      // completed não pode voltar para draft/running ou cancelled
-      // cancelled não pode voltar para running
-      if (currentStatus === 'completed' && nextStatus !== 'completed') {
-        throw new Error(`Experimento concluído não pode alterar status para ${nextStatus}.`);
-      }
-      if (currentStatus === 'cancelled' && nextStatus === 'running') {
-        throw new Error('Experimento cancelado não pode transitar para running.');
-      }
-      if (currentStatus === 'draft' && nextStatus === 'completed') {
-        throw new Error('Transição de draft direto para completed não é permitida. Coloque o experimento em running primeiro.');
-      }
-
-      // 2. Não permitir result ou learning antes de completed (Regra 5)
-      const incomingResult = data.result !== undefined ? data.result : existing.result;
-      const incomingLearning = data.learning !== undefined ? data.learning : existing.learning;
-
-      if (nextStatus !== 'completed') {
-        if (incomingResult !== null && incomingResult !== undefined) {
-          throw new Error('O resultado só pode ser informado quando o experimento estiver concluído.');
-        }
-        if (incomingLearning !== null && incomingLearning !== undefined && incomingLearning.trim() !== '') {
-          throw new Error('O aprendizado só pode ser informado quando o experimento estiver concluído.');
-        }
-      }
-
-      // 3. Regras para o status 'completed' (Regras 3, 4, 5):
-      let finalStartedAt: Date | null = existing.started_at ? new Date(existing.started_at) : null;
-      let finalCompletedAt: Date | null = existing.completed_at ? new Date(existing.completed_at) : null;
-
-      if (nextStatus === 'running') {
-        if (!finalStartedAt) {
-          finalStartedAt = data.started_at ? new Date(data.started_at) : new Date();
-        }
-      }
-
-      if (nextStatus === 'completed') {
-        if (!finalStartedAt) {
-          finalStartedAt = data.started_at ? new Date(data.started_at) : new Date();
-        }
-        finalCompletedAt = data.completed_at ? new Date(data.completed_at) : new Date();
-
-        if (!incomingResult) {
-          throw new Error('O resultado é obrigatório para concluir o experimento.');
-        }
-        const validResults = ['confirmed', 'partially_confirmed', 'rejected', 'inconclusive'];
-        if (!validResults.includes(incomingResult)) {
-          throw new Error('Resultado inválido para o experimento.');
-        }
-
-        if (!incomingLearning || typeof incomingLearning !== 'string' || incomingLearning.trim() === '') {
-          throw new Error('O aprendizado é obrigatório para concluir o experimento.');
-        }
-
-        const currentSuccessCriteria = data.success_criteria ?? existing.success_criteria;
-        if (!currentSuccessCriteria || currentSuccessCriteria.trim() === '') {
-          throw new Error('Critério de sucesso deve existir para concluir o experimento.');
-        }
-      }
-
-      const updateValues: Record<string, any> = {
-        updatedAt: new Date(),
-      };
-
-      if (data.title !== undefined) updateValues.title = data.title;
-      if (data.description !== undefined) updateValues.description = data.description;
-      if (data.method !== undefined) updateValues.method = data.method;
-      if (data.success_criteria !== undefined) updateValues.successCriteria = data.success_criteria;
-      if (data.status !== undefined) updateValues.status = data.status;
-
-      if (nextStatus === 'completed') {
-        updateValues.result = incomingResult;
-        updateValues.learning = incomingLearning ? incomingLearning.trim() : null;
-        updateValues.startedAt = finalStartedAt;
-        updateValues.completedAt = finalCompletedAt;
-      } else {
-        if (data.result !== undefined) updateValues.result = data.result;
-        if (data.learning !== undefined) updateValues.learning = data.learning;
-        if (nextStatus === 'running' && finalStartedAt) {
-          updateValues.startedAt = finalStartedAt;
-        }
-      }
-
-      await db
-        .update(schema.experiments)
-        .set(updateValues)
-        .where(
-          and(
-            eq(schema.experiments.id, experimentId),
-            eq(schema.experiments.workspaceId, workspaceId)
+      return await db.transaction(async (tx) => {
+        // 1. Obter lock exclusivo na linha do experimento (SELECT ... FOR UPDATE)
+        const rows = await tx
+          .select()
+          .from(schema.experiments)
+          .where(
+            and(
+              eq(schema.experiments.id, experimentId),
+              eq(schema.experiments.workspaceId, workspaceId)
+            )
           )
-        );
+          .for('update')
+          .limit(1);
 
-      const updated = await this.getExperimentById(workspaceId, experimentId);
-      if (!updated) {
-        throw new Error('Experimento não encontrado após atualização');
-      }
-      return updated;
+        if (rows.length === 0) {
+          throw new Error('Experimento não encontrado neste workspace.');
+        }
+
+        const existingRow = rows[0];
+        const currentStatus = existingRow.status as 'draft' | 'running' | 'completed' | 'cancelled';
+        const nextStatus = data.status ?? currentStatus;
+
+        // 2. Regras de Transição de Ciclo de Vida:
+        // draft -> running
+        // running -> completed
+        // draft -> cancelled
+        // running -> cancelled
+        // completed não pode voltar para draft/running ou cancelled
+        // cancelled não pode voltar para running, completed ou draft
+        if (currentStatus === 'completed' && nextStatus !== 'completed') {
+          throw new Error(`Experimento concluído não pode alterar status para ${nextStatus}.`);
+        }
+        if (currentStatus === 'cancelled' && nextStatus !== 'cancelled') {
+          throw new Error(`Experimento cancelado não pode transitar para ${nextStatus}.`);
+        }
+        if (currentStatus === 'draft' && nextStatus === 'completed') {
+          throw new Error('Transição de draft direto para completed não é permitida. Coloque o experimento em running primeiro.');
+        }
+
+        // 3. Não permitir result ou learning antes de completed (Regra 5)
+        const incomingResult = data.result !== undefined ? data.result : existingRow.result;
+        const incomingLearning = data.learning !== undefined ? data.learning : existingRow.learning;
+
+        if (nextStatus !== 'completed') {
+          if (incomingResult !== null && incomingResult !== undefined) {
+            throw new Error('O resultado só pode ser informado quando o experimento estiver concluído.');
+          }
+          if (incomingLearning !== null && incomingLearning !== undefined && incomingLearning.trim() !== '') {
+            throw new Error('O aprendizado só pode ser informado quando o experimento estiver concluído.');
+          }
+        }
+
+        // 4. Regras para o status 'completed' (Regras 3, 4, 5):
+        let finalStartedAt: Date | null = existingRow.startedAt ? new Date(existingRow.startedAt) : null;
+        let finalCompletedAt: Date | null = existingRow.completedAt ? new Date(existingRow.completedAt) : null;
+
+        if (nextStatus === 'running') {
+          if (!finalStartedAt) {
+            finalStartedAt = data.started_at ? new Date(data.started_at) : new Date();
+          }
+        }
+
+        if (nextStatus === 'completed') {
+          if (!finalStartedAt) {
+            finalStartedAt = data.started_at ? new Date(data.started_at) : new Date();
+          }
+          finalCompletedAt = data.completed_at ? new Date(data.completed_at) : new Date();
+
+          if (!incomingResult) {
+            throw new Error('O resultado é obrigatório para concluir o experimento.');
+          }
+          const validResults = ['confirmed', 'partially_confirmed', 'rejected', 'inconclusive'];
+          if (!validResults.includes(incomingResult)) {
+            throw new Error('Resultado inválido para o experimento.');
+          }
+
+          if (!incomingLearning || typeof incomingLearning !== 'string' || incomingLearning.trim() === '') {
+            throw new Error('O aprendizado é obrigatório para concluir o experimento.');
+          }
+
+          const currentSuccessCriteria = data.success_criteria ?? existingRow.successCriteria;
+          if (!currentSuccessCriteria || currentSuccessCriteria.trim() === '') {
+            throw new Error('Critério de sucesso deve existir para concluir o experimento.');
+          }
+        }
+
+        const updateValues: Record<string, any> = {
+          updatedAt: new Date(),
+        };
+
+        if (data.title !== undefined) updateValues.title = data.title;
+        if (data.description !== undefined) updateValues.description = data.description;
+        if (data.method !== undefined) updateValues.method = data.method;
+        if (data.success_criteria !== undefined) updateValues.successCriteria = data.success_criteria;
+        if (data.status !== undefined) updateValues.status = data.status;
+
+        if (nextStatus === 'completed') {
+          updateValues.result = incomingResult;
+          updateValues.learning = incomingLearning ? incomingLearning.trim() : null;
+          updateValues.startedAt = finalStartedAt;
+          updateValues.completedAt = finalCompletedAt;
+        } else {
+          if (data.result !== undefined) updateValues.result = data.result;
+          if (data.learning !== undefined) updateValues.learning = data.learning;
+          if (nextStatus === 'running' && finalStartedAt) {
+            updateValues.startedAt = finalStartedAt;
+          }
+        }
+
+        // UPDATE atômico condicionado ao status atual esperado
+        const updateResult = await tx
+          .update(schema.experiments)
+          .set(updateValues)
+          .where(
+            and(
+              eq(schema.experiments.id, experimentId),
+              eq(schema.experiments.workspaceId, workspaceId),
+              eq(schema.experiments.status, currentStatus)
+            )
+          )
+          .returning();
+
+        if (updateResult.length === 0) {
+          throw new Error('Conflito de concorrência detectado: o status do experimento foi alterado simultaneamente por outra transação.');
+        }
+
+        const updatedRow = updateResult[0];
+
+        // Buscar dados da hipótese para retorno enriquecido
+        const [hyp] = await tx
+          .select({
+            statement: schema.hypotheses.statement,
+            opportunityId: schema.hypotheses.opportunityId,
+            opportunityTitle: schema.opportunities.title,
+          })
+          .from(schema.hypotheses)
+          .leftJoin(schema.opportunities, eq(schema.hypotheses.opportunityId, schema.opportunities.id))
+          .where(eq(schema.hypotheses.id, updatedRow.hypothesisId))
+          .limit(1);
+
+        return {
+          id: updatedRow.id,
+          workspace_id: updatedRow.workspaceId,
+          hypothesis_id: updatedRow.hypothesisId,
+          title: updatedRow.title,
+          description: updatedRow.description,
+          method: updatedRow.method,
+          success_criteria: updatedRow.successCriteria,
+          status: updatedRow.status as any,
+          result: updatedRow.result as any,
+          learning: updatedRow.learning,
+          started_at: updatedRow.startedAt ? updatedRow.startedAt.toISOString() : null,
+          completed_at: updatedRow.completedAt ? updatedRow.completedAt.toISOString() : null,
+          created_at: updatedRow.createdAt.toISOString(),
+          updated_at: updatedRow.updatedAt.toISOString(),
+          hypothesis_statement: hyp?.statement || '',
+          opportunity_id: hyp?.opportunityId || '',
+          opportunity_title: hyp?.opportunityTitle || '',
+        };
+      });
     } catch (err: any) {
       console.error('Postgres updateExperiment error:', err.message || err);
       throw err;
