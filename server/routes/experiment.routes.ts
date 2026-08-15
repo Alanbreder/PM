@@ -25,7 +25,7 @@ experimentRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing experiments:', error);
+      console.error('Error listing experiments:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -55,7 +55,7 @@ experimentRouter.get(
       }
       res.json({ experiment });
     } catch (error: any) {
-      console.error('Error getting experiment:', error);
+      console.error('Error getting experiment:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -85,11 +85,11 @@ experimentRouter.post(
       });
       res.status(201).json({ experiment });
     } catch (error: any) {
-      console.error('Error creating experiment:', error.message);
+      console.error('Error creating experiment:', error instanceof Error ? error.message : 'Erro ao criar');
       res.status(400).json({
         success: false,
         error: 'BAD_REQUEST',
-        message: error.message || 'Erro ao criar experimento.',
+        message: error instanceof Error ? error.message : 'Erro ao criar experimento.',
       });
     }
   }
@@ -109,12 +109,12 @@ experimentRouter.patch(
       const updated = await dbStore.updateExperiment(workspaceId, id, req.body);
       res.json({ experiment: updated });
     } catch (error: any) {
-      console.error('Error updating experiment:', error.message);
-      const isNotFound = error.message?.includes('não encontrado');
+      console.error('Error updating experiment:', error instanceof Error ? error.message : 'Erro ao atualizar');
+      const isNotFound = error?.message?.includes('não encontrado');
       res.status(isNotFound ? 404 : 400).json({
         success: false,
         error: isNotFound ? 'NOT_FOUND' : 'BAD_REQUEST',
-        message: error.message || 'Erro ao atualizar experimento.',
+        message: error instanceof Error ? error.message : 'Erro ao atualizar experimento.',
       });
     }
   }
@@ -133,12 +133,12 @@ experimentRouter.delete(
       await dbStore.deleteExperiment(workspaceId, id);
       res.json({ success: true, message: 'Experimento excluído com sucesso.' });
     } catch (error: any) {
-      console.error('Error deleting experiment:', error.message);
-      const isNotFound = error.message?.includes('não encontrado');
+      console.error('Error deleting experiment:', error instanceof Error ? error.message : 'Erro ao excluir');
+      const isNotFound = error?.message?.includes('não encontrado');
       res.status(isNotFound ? 404 : 400).json({
         success: false,
         error: isNotFound ? 'NOT_FOUND' : 'BAD_REQUEST',
-        message: error.message || 'Erro ao excluir experimento.',
+        message: error instanceof Error ? error.message : 'Erro ao excluir experimento.',
       });
     }
   }

@@ -2,7 +2,8 @@ import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { dbStore } from '../db/store.js';
 import { eq } from 'drizzle-orm';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireWorkspace } from '../middleware/auth.js';
+import { askProductSchema } from '../schemas/index.js';
 import { Request, Response, NextFunction } from 'express';
 
 export interface TestResult {
@@ -68,6 +69,48 @@ async function simulateAuthMiddleware(
       delete process.env.ALLOW_DEV_MOCK_AUTH;
     }
   }
+}
+
+// Helper to simulate requireWorkspace middleware invocation
+async function simulateWorkspaceMiddleware(
+  headers: Record<string, string>,
+  user: any
+): Promise<{ status?: number; body?: any; nextCalled: boolean; workspaceId?: string; role?: string }> {
+  let nextCalled = false;
+  let statusCode: number | undefined = undefined;
+  let responseBody: any = undefined;
+
+  const mockReq: Partial<Request> = {
+    headers,
+    params: {},
+    query: {},
+    user,
+  };
+
+  const mockRes: Partial<Response> = {
+    status(code: number) {
+      statusCode = code;
+      return this as Response;
+    },
+    json(body: any) {
+      responseBody = body;
+      return this as Response;
+    },
+  };
+
+  const mockNext: NextFunction = () => {
+    nextCalled = true;
+  };
+
+  await requireWorkspace(mockReq as Request, mockRes as Response, mockNext);
+
+  return {
+    status: statusCode,
+    body: responseBody,
+    nextCalled,
+    workspaceId: (mockReq as any).workspaceId,
+    role: (mockReq as any).workspaceRole,
+  };
 }
 
 export async function runSecurityIsolationTests(): Promise<TestResult[]> {
@@ -197,6 +240,30 @@ export async function runSecurityIsolationTests(): Promise<TestResult[]> {
     passed: memFake === null,
   });
 
+  // 2.5 requireWorkspace sem bypass para usr-dev-mock-1 ou qualquer usuário sem membership -> 403
+  const resBypassMock = await simulateWorkspaceMiddleware(
+    { 'x-workspace-id': wsB.id },
+    { id: 'usr-dev-mock-1', email: 'dev-mock@sip.local' }
+  );
+  results.push({
+    name: '2.5 [SEC-R01] requireWorkspace sem bypass residual: usr-dev-mock-1 sem membership -> Bloqueado 403',
+    expected: 'Status 403 FORBIDDEN (Next NOT called)',
+    actual: resBypassMock.status === 403 && !resBypassMock.nextCalled ? 'Status 403 FORBIDDEN (Bloqueado)' : `Bypass detectado (Status ${resBypassMock.status})`,
+    passed: resBypassMock.status === 403 && !resBypassMock.nextCalled,
+  });
+
+  // 2.6 requireWorkspace com membership legítimo -> Autorizado 200 (next called)
+  const resValidMember = await simulateWorkspaceMiddleware(
+    { 'x-workspace-id': wsA.id },
+    { id: userA, email: 'user-a@sip.local' }
+  );
+  results.push({
+    name: '2.6 [SEC-R01] requireWorkspace com membership válido -> Autorizado com sucesso (Next chamado)',
+    expected: 'Next() chamado com workspaceId e role owner injetados',
+    actual: resValidMember.nextCalled && resValidMember.workspaceId === wsA.id && resValidMember.role === 'owner' ? 'Autorizado com tenant e role validados' : 'Falha na autorização',
+    passed: Boolean(resValidMember.nextCalled && resValidMember.workspaceId === wsA.id && resValidMember.role === 'owner'),
+  });
+
   // ==========================================
   // SECTION 3: UNIQUE CONSTRAINT EM WORKSPACE_MEMBERS (SEC-Q02)
   // ==========================================
@@ -218,6 +285,18 @@ export async function runSecurityIsolationTests(): Promise<TestResult[]> {
     expected: 'Erro de violação de constraint única (uq_workspace_members_workspace_user)',
     actual: duplicateMemberBlocked ? 'Rejeitado pelo PostgreSQL (Constraint Ativa)' : 'Permitiu duplicata indevidamente',
     passed: duplicateMemberBlocked,
+  });
+
+  // 3.2 Transacionalidade na criação de workspace
+  const userTx = 'test-user-tx-' + Date.now();
+  const wsTx = await dbStore.createWorkspace('Workspace Transacional', 'ws-tx-' + Date.now(), userTx);
+  const txMembership = await dbStore.getMembership(wsTx.id, userTx);
+  const isTxAtomic = wsTx.id !== undefined && txMembership?.role === 'owner';
+  results.push({
+    name: '3.2 [DB-TX] createWorkspace cria workspace e associação de owner de forma atômica e transacional',
+    expected: 'Workspace e Owner Membership persistidos atomicamente',
+    actual: isTxAtomic ? 'Workspace e Owner Membership criados com integridade' : 'Falha na atomicidade',
+    passed: isTxAtomic,
   });
 
   // ==========================================
@@ -521,7 +600,7 @@ export async function runSecurityIsolationTests(): Promise<TestResult[]> {
   });
 
   // ==========================================
-  // SECTION 5: HTTP ROUTE SECURITY (SEC-R02)
+  // SECTION 5: HTTP ROUTE SECURITY (SEC-R02 & AI LIMITS)
   // ==========================================
   // Verify that test router is not mounted on the express server
   results.push({
@@ -531,10 +610,38 @@ export async function runSecurityIsolationTests(): Promise<TestResult[]> {
     passed: true,
   });
 
+  // 5.2 Ask Product limita prompt curto (< 3 chars)
+  const shortPromptCheck = askProductSchema.safeParse({ prompt: 'ab' });
+  results.push({
+    name: '5.2 [AI-LIMITS] Ask Product rejeita prompt com menos de 3 caracteres',
+    expected: 'Rejeitado por validação de tamanho mínimo',
+    actual: !shortPromptCheck.success ? 'Rejeitado com erro de validação' : 'Aceito indevidamente',
+    passed: !shortPromptCheck.success,
+  });
+
+  // 5.3 Ask Product limita prompt longo (> 2000 chars)
+  const longPromptCheck = askProductSchema.safeParse({ prompt: 'a'.repeat(2001) });
+  results.push({
+    name: '5.3 [AI-LIMITS] Ask Product rejeita prompt que excede 2000 caracteres',
+    expected: 'Rejeitado por validação de tamanho máximo (2000 chars)',
+    actual: !longPromptCheck.success ? 'Rejeitado com erro de limite máximo' : 'Aceito indevidamente',
+    passed: !longPromptCheck.success,
+  });
+
+  // 5.4 Ask Product aceita prompt válido
+  const validPromptCheck = askProductSchema.safeParse({ prompt: 'Quais são as principais dores do onboarding?' });
+  results.push({
+    name: '5.4 [AI-LIMITS] Ask Product aceita prompt válido e sanitizado',
+    expected: 'Aprovado na validação de schema',
+    actual: validPromptCheck.success ? 'Aprovado com sucesso' : 'Falha na validação',
+    passed: validPromptCheck.success,
+  });
+
   // Cleanup test workspaces
   try {
     await db.delete(schema.workspaces).where(eq(schema.workspaces.id, wsA.id));
     await db.delete(schema.workspaces).where(eq(schema.workspaces.id, wsB.id));
+    await db.delete(schema.workspaces).where(eq(schema.workspaces.id, wsTx.id));
   } catch (e) {
     // Non-critical cleanup
   }

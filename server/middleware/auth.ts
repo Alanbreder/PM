@@ -108,15 +108,7 @@ export async function requireWorkspace(req: Request, res: Response, next: NextFu
   }
 
   try {
-    let memberRecord = await dbStore.getMembership(requestedWorkspaceId, req.user.id);
-
-    // In dev mock auth mode for the default preview user, grant owner role if workspace exists
-    if (!memberRecord && config.ALLOW_DEV_MOCK_AUTH && config.NODE_ENV !== 'production' && req.user.id === 'usr-dev-mock-1') {
-      const ws = await dbStore.getWorkspaceById(requestedWorkspaceId);
-      if (ws) {
-        memberRecord = { role: 'owner', workspace_id: requestedWorkspaceId };
-      }
-    }
+    const memberRecord = await dbStore.getMembership(requestedWorkspaceId, req.user.id);
 
     if (!memberRecord) {
       res.status(403).json({
@@ -137,7 +129,7 @@ export async function requireWorkspace(req: Request, res: Response, next: NextFu
 
     next();
   } catch (error: any) {
-    console.error('requireWorkspace error:', error);
+    console.error('requireWorkspace error:', error instanceof Error ? error.message : 'Erro interno');
     res.status(500).json({
       success: false,
       error: 'INTERNAL_SERVER_ERROR',

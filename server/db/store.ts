@@ -91,24 +91,26 @@ class PostgresStore {
 
   async createWorkspace(name: string, slug: string, ownerUserId: string): Promise<Workspace> {
     try {
-      const [ws] = await db
-        .insert(schema.workspaces)
-        .values({ name, slug })
-        .returning();
+      return await db.transaction(async (tx) => {
+        const [ws] = await tx
+          .insert(schema.workspaces)
+          .values({ name, slug })
+          .returning();
 
-      await db.insert(schema.workspaceMembers).values({
-        workspaceId: ws.id,
-        userId: ownerUserId,
-        role: 'owner',
+        await tx.insert(schema.workspaceMembers).values({
+          workspaceId: ws.id,
+          userId: ownerUserId,
+          role: 'owner',
+        });
+
+        return {
+          id: ws.id,
+          name: ws.name,
+          slug: ws.slug,
+          created_at: ws.createdAt.toISOString(),
+          updated_at: ws.updatedAt.toISOString(),
+        };
       });
-
-      return {
-        id: ws.id,
-        name: ws.name,
-        slug: ws.slug,
-        created_at: ws.createdAt.toISOString(),
-        updated_at: ws.updatedAt.toISOString(),
-      };
     } catch (err) {
       console.error('Postgres createWorkspace error:', err instanceof Error ? err.message : err);
       throw new Error('Falha ao criar workspace no banco de dados');

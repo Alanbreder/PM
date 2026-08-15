@@ -25,7 +25,7 @@ hypothesisRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing hypotheses:', error);
+      console.error('Error listing hypotheses:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -55,11 +55,11 @@ hypothesisRouter.post(
       });
       res.status(201).json({ hypothesis });
     } catch (error: any) {
-      console.error('Error creating hypothesis:', error.message);
+      console.error('Error creating hypothesis:', error instanceof Error ? error.message : 'Erro ao criar');
       res.status(400).json({
         success: false,
         error: 'BAD_REQUEST',
-        message: error.message || 'Erro ao criar hipótese.',
+        message: error instanceof Error ? error.message : 'Erro ao criar hipótese.',
       });
     }
   }

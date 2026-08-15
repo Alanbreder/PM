@@ -17,7 +17,7 @@ workspaceRouter.get(
       const workspaces = await dbStore.listWorkspacesForUser(user.id);
       res.json({ workspaces });
     } catch (error: any) {
-      console.error('Error listing workspaces:', error);
+      console.error('Error listing workspaces:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -40,7 +40,7 @@ workspaceRouter.post(
       const ws = await dbStore.createWorkspace(name, slug, user.id);
       res.status(201).json({ workspace: ws });
     } catch (error: any) {
-      console.error('Error creating workspace:', error);
+      console.error('Error creating workspace:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -71,7 +71,7 @@ workspaceRouter.get(
       }
       res.json({ workspace: ws, userRole: req.workspaceRole });
     } catch (error: any) {
-      console.error('Error fetching workspace:', error);
+      console.error('Error fetching workspace:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -104,7 +104,7 @@ workspaceRouter.post(
       const member = await dbStore.addMember(workspaceId, user_id, role);
       res.status(201).json({ member });
     } catch (error: any) {
-      console.error('Error adding member:', error);
+      console.error('Error adding member:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',

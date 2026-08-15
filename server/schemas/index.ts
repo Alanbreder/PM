@@ -166,3 +166,12 @@ export const approveAnalysisSchema = z.object({
     })
   ).default([]),
 });
+
+// Ask Product Assistant Schemas
+export const askProductSchema = z.object({
+  prompt: z
+    .string()
+    .trim()
+    .min(3, 'A pergunta deve ter no mínimo 3 caracteres.')
+    .max(2000, 'A pergunta não pode exceder o limite de 2000 caracteres.'),
+});

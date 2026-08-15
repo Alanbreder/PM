@@ -26,7 +26,7 @@ researchRouter.get(
         pagination,
       });
     } catch (error: any) {
-      console.error('Error listing researches:', error);
+      console.error('Error listing researches:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -59,7 +59,7 @@ researchRouter.get(
       const evidences = await dbStore.listEvidences(workspaceId, researchId);
       res.json({ research: { ...research, evidences } });
     } catch (error: any) {
-      console.error('Error fetching research:', error);
+      console.error('Error fetching research:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -91,7 +91,7 @@ researchRouter.post(
       });
       res.status(201).json({ research });
     } catch (error: any) {
-      console.error('Error creating research:', error);
+      console.error('Error creating research:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
@@ -132,11 +132,11 @@ researchRouter.post(
         analysis,
       });
     } catch (error: any) {
-      console.error('Error analyzing research with AI:', error);
+      console.error('Error analyzing research with AI:', error instanceof Error ? error.message : 'Erro na análise de IA');
       res.status(500).json({
         success: false,
         error: 'AI_ANALYSIS_ERROR',
-        message: error.message || 'Erro ao processar a pesquisa com a IA do Gemini.',
+        message: error instanceof Error ? error.message : 'Erro ao processar a pesquisa com a IA do Gemini.',
       });
     }
   }
@@ -169,11 +169,11 @@ researchRouter.post(
         saved_problems: result.saved_problems,
       });
     } catch (error: any) {
-      console.error('Error approving analysis:', error);
+      console.error('Error approving analysis:', error instanceof Error ? error.message : 'Erro interno');
       res.status(500).json({
         success: false,
         error: 'INTERNAL_SERVER_ERROR',
-        message: error.message || 'Erro ao salvar os registros aprovados no banco.',
+        message: error instanceof Error ? error.message : 'Erro ao salvar os registros aprovados no banco.',
       });
     }
   }
