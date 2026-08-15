@@ -14,5 +14,5 @@ export const config: ServerConfig = {
   APP_URL: process.env.APP_URL,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   NODE_ENV: process.env.NODE_ENV || 'development',
-  ALLOW_DEV_MOCK_AUTH: process.env.ALLOW_DEV_MOCK_AUTH !== 'false',
+  ALLOW_DEV_MOCK_AUTH: process.env.ALLOW_DEV_MOCK_AUTH === 'true',
 };

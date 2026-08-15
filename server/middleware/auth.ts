@@ -27,8 +27,12 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-  // Development explicit mock authentication (ONLY if explicitly enabled via ALLOW_DEV_MOCK_AUTH=true and NOT in production)
-  if (!token && config.ALLOW_DEV_MOCK_AUTH && config.NODE_ENV !== 'production') {
+  // Mock authentication is strictly DENY-BY-DEFAULT and ONLY allowed when NODE_ENV === 'test' AND ALLOW_DEV_MOCK_AUTH === 'true'
+  const currentEnv = process.env.NODE_ENV || config.NODE_ENV;
+  const allowMock = process.env.ALLOW_DEV_MOCK_AUTH === 'true';
+  const isMockAuthAllowed = currentEnv === 'test' && allowMock;
+
+  if (!token && isMockAuthAllowed) {
     const testUid = (req.headers['x-test-user-id'] as string) || 'usr-dev-mock-1';
     req.user = {
       id: testUid,

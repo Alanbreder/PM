@@ -14,12 +14,7 @@ workspaceRouter.get(
     const user = req.user!;
 
     try {
-      let workspaces = await dbStore.listWorkspacesForUser(user.id);
-      
-      if (workspaces.length === 0) {
-        workspaces = await dbStore.listAllWorkspaces();
-      }
-
+      const workspaces = await dbStore.listWorkspacesForUser(user.id);
       res.json({ workspaces });
     } catch (error: any) {
       console.error('Error listing workspaces:', error);

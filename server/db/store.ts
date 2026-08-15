@@ -38,26 +38,6 @@ class PostgresStore {
   }
 
   // Workspaces
-  async listAllWorkspaces(): Promise<Workspace[]> {
-    try {
-      const rows = await db
-        .select()
-        .from(schema.workspaces)
-        .orderBy(desc(schema.workspaces.createdAt));
-
-      return rows.map((r) => ({
-        id: r.id,
-        name: r.name,
-        slug: r.slug,
-        created_at: r.createdAt.toISOString(),
-        updated_at: r.updatedAt.toISOString(),
-      }));
-    } catch (err) {
-      console.error('Postgres listAllWorkspaces error:', err instanceof Error ? err.message : err);
-      throw new Error('Falha ao listar todos os workspaces');
-    }
-  }
-
   async listWorkspacesForUser(userId: string): Promise<Workspace[]> {
     try {
       const memberships = await db

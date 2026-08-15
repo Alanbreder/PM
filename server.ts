@@ -12,14 +12,11 @@ import { opportunityRouter } from './server/routes/opportunity.routes.js';
 import { hypothesisRouter } from './server/routes/hypothesis.routes.js';
 import { experimentRouter } from './server/routes/experiment.routes.js';
 import { askProductRouter } from './server/routes/ask_product.routes.js';
-import { testRouter } from './server/routes/test.routes.js';
-import { ensureExperimentsTableExists } from './server/db/init.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  await ensureExperimentsTableExists();
   const app = express();
   const PORT = 3000;
 
@@ -45,7 +42,6 @@ async function startServer() {
   app.use('/api', hypothesisRouter);
   app.use('/api', experimentRouter);
   app.use('/api', askProductRouter);
-  app.use('/api', testRouter);
 
   // Global Error Handler for API
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {

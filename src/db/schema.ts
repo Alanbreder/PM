@@ -32,6 +32,7 @@ export const workspaceMembers = pgTable('workspace_members', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_workspace_members_workspace_id').on(table.workspaceId),
+  unique('uq_workspace_members_workspace_user').on(table.workspaceId, table.userId),
 ]);
 
 // Researches (Entrevistas, Descobertas, Transcrições)
