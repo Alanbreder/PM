@@ -1,160 +1,124 @@
 import { Router, Request, Response } from 'express';
+import { dbStore } from '../db/store.js';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { aiRateLimiter } from '../middleware/rate_limit.js';
 import { createResearchSchema, uuidParamSchema, approveAnalysisSchema } from '../schemas/index.js';
-import { dbStore } from '../db/store.js';
-import { analyzeResearchContent } from '../services/gemini.service.js';
-import { applyPagination } from '../utils/pagination.js';
 import { handleRouteError } from '../utils/errors.js';
+import { applyPagination } from '../utils/pagination.js';
+import { analyzeResearchWithAI } from '../services/gemini.service.js';
 
-export const researchRouter = Router();
+const router = Router();
 
-// List researches for verified workspace with pagination
-researchRouter.get(
-  '/researches',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
+router.use(authenticate);
+router.use(requireWorkspace);
 
-    try {
-      const allResearches = await dbStore.listResearches(workspaceId);
-      const { data, pagination } = applyPagination(allResearches, req.query.page, req.query.limit);
-
-      res.json({
-        researches: data,
-        pagination,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'listResearches');
-    }
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const list = await dbStore.listResearches(req.workspaceId!);
+    const paginated = applyPagination(list, req.query.page, req.query.limit);
+    res.json({ success: true, ...paginated });
+  } catch (err) {
+    handleRouteError(res, err, 'ListResearches');
   }
-);
+});
 
-// Get research by ID with associated evidences
-researchRouter.get(
-  '/researches/:id',
-  authenticate,
-  validate({ params: uuidParamSchema }),
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const researchId = req.params.id;
+router.post('/', requireRole(['owner', 'admin', 'member']), validate({ body: createResearchSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.createResearch(req.workspaceId!, req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'CreateResearch');
+  }
+});
+
+router.get('/:id', validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.getResearchById(req.workspaceId!, req.params.id as string);
+    if (!item) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Pesquisa não encontrada' });
+      return;
+    }
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'GetResearch');
+  }
+});
+
+router.post('/:id/analyze', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
+  try {
+    const research = await dbStore.getResearchById(req.workspaceId!, req.params.id as string);
+    if (!research) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Pesquisa não encontrada' });
+      return;
+    }
+
+    if (!research.raw_notes) {
+      res.status(400).json({ error: 'BAD_REQUEST', message: 'A pesquisa não contém anotações brutas' });
+      return;
+    }
+
+    await dbStore.updateResearch(req.workspaceId!, research.id, { analysis_status: 'analyzing' });
 
     try {
-      const research = await dbStore.getResearchById(workspaceId, researchId);
-      if (!research) {
-        res.status(404).json({
-          success: false,
-          error: 'NOT_FOUND',
-          message: 'Pesquisa não encontrada neste workspace.',
+      const aiResult = await analyzeResearchWithAI(research.raw_notes);
+      const updated = await dbStore.updateResearch(req.workspaceId!, research.id, {
+        key_findings: aiResult.key_findings || [],
+        suggested_problems: aiResult.suggested_problems || [],
+        analysis_status: 'completed',
+      });
+      res.json({ success: true, data: updated });
+    } catch (aiErr) {
+      await dbStore.updateResearch(req.workspaceId!, research.id, { analysis_status: 'error' });
+      throw aiErr;
+    }
+  } catch (err) {
+    handleRouteError(res, err, 'AnalyzeResearch');
+  }
+});
+
+router.post('/:id/approve-analysis', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema, body: approveAnalysisSchema }), async (req: Request, res: Response) => {
+  try {
+    const research = await dbStore.getResearchById(req.workspaceId!, req.params.id as string);
+    if (!research) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Pesquisa não encontrada' });
+      return;
+    }
+
+    const { problemsToCreate } = req.body;
+    const createdProblems = [];
+
+    if (problemsToCreate && Array.isArray(problemsToCreate)) {
+      for (const p of problemsToCreate) {
+        const ev = await dbStore.createEvidence(req.workspaceId!, {
+          research_id: research.id,
+          content: p.evidence,
+          source: `Pesquisa: ${research.title}`,
         });
-        return;
-      }
-      const evidences = await dbStore.listEvidences(workspaceId, researchId);
-      res.json({ research: { ...research, evidences } });
-    } catch (error: any) {
-      handleRouteError(res, error, 'getResearchById');
-    }
-  }
-);
 
-// Create new research in workspace
-researchRouter.post(
-  '/researches',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: createResearchSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const user = req.user!;
-    const { title, source_type, source_url, participant_info, raw_content } = req.body;
-
-    try {
-      const research = await dbStore.createResearch(workspaceId, {
-        title,
-        source_type,
-        source_url,
-        participant_info,
-        raw_content,
-        created_by: user.id,
-      });
-      res.status(201).json({ research });
-    } catch (error: any) {
-      handleRouteError(res, error, 'createResearch');
-    }
-  }
-);
-
-// Analyze Research with Gemini AI (Human-in-the-loop + Rate limited + Input audited)
-researchRouter.post(
-  '/researches/:id/analyze',
-  authenticate,
-  validate({ params: uuidParamSchema }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  aiRateLimiter,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const researchId = req.params.id;
-
-    try {
-      const research = await dbStore.getResearchById(workspaceId, researchId);
-      if (!research) {
-        res.status(404).json({
-          success: false,
-          error: 'NOT_FOUND',
-          message: 'Pesquisa não encontrada neste workspace.',
+        const prob = await dbStore.createProblem(req.workspaceId!, {
+          title: p.title,
+          description: p.description,
+          impact: p.impact,
+          frequency: 'occasional',
+          evidence_ids: [ev.id],
         });
-        return;
+
+        createdProblems.push(prob);
       }
-
-      const analysis = await analyzeResearchContent(research.raw_content, research.title);
-
-      res.json({
-        success: true,
-        research_id: research.id,
-        title: research.title,
-        analysis,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'analyzeResearch');
     }
+
+    const updated = await dbStore.updateResearch(req.workspaceId!, research.id, { status: 'analyzed' });
+
+    res.json({
+      success: true,
+      data: {
+        research: updated,
+        createdProblems,
+      },
+    });
+  } catch (err) {
+    handleRouteError(res, err, 'ApproveAnalysis');
   }
-);
+});
 
-// Approve and persist AI suggestions into PostgreSQL Cloud SQL
-researchRouter.post(
-  '/researches/:id/approve-analysis',
-  authenticate,
-  validate({ params: uuidParamSchema, body: approveAnalysisSchema }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const researchId = req.params.id;
-    const { approved_evidences, approved_problems } = req.body;
-
-    try {
-      const result = await dbStore.saveApprovedAnalysis(
-        workspaceId,
-        researchId,
-        approved_evidences,
-        approved_problems
-      );
-
-      res.status(201).json({
-        success: true,
-        saved_evidences_count: result.saved_evidences.length,
-        saved_problems_count: result.saved_problems.length,
-        saved_evidences: result.saved_evidences,
-        saved_problems: result.saved_problems,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'saveApprovedAnalysis');
-    }
-  }
-);
-
+export const researchRouter = router;

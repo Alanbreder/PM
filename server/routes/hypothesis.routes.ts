@@ -1,59 +1,34 @@
 import { Router, Request, Response } from 'express';
+import { dbStore } from '../db/store.js';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { createHypothesisSchema } from '../schemas/index.js';
-import { dbStore } from '../db/store.js';
-import { applyPagination } from '../utils/pagination.js';
+import { createHypothesisSchema, uuidParamSchema } from '../schemas/index.js';
 import { handleRouteError } from '../utils/errors.js';
+import { applyPagination } from '../utils/pagination.js';
 
-export const hypothesisRouter = Router();
+const router = Router();
 
-// List hypotheses in workspace with pagination
-hypothesisRouter.get(
-  '/hypotheses',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const opportunityId = req.query.opportunity_id as string | undefined;
+router.use(authenticate);
+router.use(requireWorkspace);
 
-    try {
-      const allHypotheses = await dbStore.listHypotheses(workspaceId, opportunityId);
-      const { data, pagination } = applyPagination(allHypotheses, req.query.page, req.query.limit);
-
-      res.json({
-        hypotheses: data,
-        pagination,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'listHypotheses');
-    }
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const opportunityId = req.query.opportunity_id ? String(req.query.opportunity_id) : undefined;
+    const list = await dbStore.listHypotheses(req.workspaceId!, opportunityId);
+    const paginated = applyPagination(list, req.query.page, req.query.limit);
+    res.json({ success: true, ...paginated });
+  } catch (err) {
+    handleRouteError(res, err, 'ListHypotheses');
   }
-);
+});
 
-// Create hypothesis
-hypothesisRouter.post(
-  '/hypotheses',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: createHypothesisSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { opportunity_id, statement, metric_target, confidence_score, status } = req.body;
-
-    try {
-      const hypothesis = await dbStore.createHypothesis(workspaceId, {
-        opportunity_id,
-        statement,
-        metric_target,
-        confidence_score,
-        status,
-      });
-      res.status(201).json({ hypothesis });
-    } catch (error: any) {
-      handleRouteError(res, error, 'createHypothesis');
-    }
+router.post('/', requireRole(['owner', 'admin', 'member']), validate({ body: createHypothesisSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.createHypothesis(req.workspaceId!, req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'CreateHypothesis');
   }
-);
+});
 
+export const hypothesisRouter = router;

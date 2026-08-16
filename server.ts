@@ -1,7 +1,8 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
+import cors from 'cors';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+
 import { healthRouter } from './server/routes/health.routes.js';
 import { authRouter } from './server/routes/auth.routes.js';
 import { workspaceRouter } from './server/routes/workspace.routes.js';
@@ -11,53 +12,31 @@ import { problemRouter } from './server/routes/problem.routes.js';
 import { opportunityRouter } from './server/routes/opportunity.routes.js';
 import { hypothesisRouter } from './server/routes/hypothesis.routes.js';
 import { experimentRouter } from './server/routes/experiment.routes.js';
-import { askProductRouter } from './server/routes/ask_product.routes.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { decisionRouter } from './server/routes/decision.routes.js';
+import { intelligenceRouter } from './server/routes/intelligence.routes.js';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // JSON Body Parser with reasonable limits
-  app.use(express.json({ limit: '5mb' }));
+  app.use(cors());
+  app.use(express.json());
 
-  // Security Headers Middleware
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    next();
-  });
-
-  // Mount API Routers
+  // Mount API Routes
   app.use('/api', healthRouter);
-  app.use('/api', authRouter);
-  app.use('/api', workspaceRouter);
-  app.use('/api', researchRouter);
-  app.use('/api', evidenceRouter);
-  app.use('/api', problemRouter);
-  app.use('/api', opportunityRouter);
-  app.use('/api', hypothesisRouter);
-  app.use('/api', experimentRouter);
-  app.use('/api', askProductRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/workspaces', workspaceRouter);
+  app.use('/api/researches', researchRouter);
+  app.use('/api/evidences', evidenceRouter);
+  app.use('/api/problems', problemRouter);
+  app.use('/api/opportunities', opportunityRouter);
+  app.use('/api/hypotheses', hypothesisRouter);
+  app.use('/api/experiments', experimentRouter);
+  app.use('/api/decisions', decisionRouter);
+  app.use('/api/intelligence', intelligenceRouter);
+  app.use('/api/workspaces/:workspaceId/intelligence', intelligenceRouter);
 
-  // Global Error Handler for API
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('[Product OS Server Error]:', err?.message || err);
-    const statusCode = err.status && err.status >= 400 && err.status < 500 ? err.status : 500;
-    const errorCode = err.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST');
-    const safeMessage = statusCode === 500 ? 'Não foi possível concluir a operação.' : (err.message || 'Requisição inválida.');
-
-    res.status(statusCode).json({
-      success: false,
-      error: errorCode,
-      message: safeMessage,
-    });
-  });
-
-  // Vite Middleware Setup for Dev / Static Asset Server for Production
+  // Vite middleware for dev or static server for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -67,17 +46,17 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Product OS Server] Running on http://0.0.0.0:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
 startServer().catch((err) => {
-  console.error('[Product OS Startup Failure]:', err);
+  console.error('Failed to start server:', err);
   process.exit(1);
 });

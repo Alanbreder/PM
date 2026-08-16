@@ -1,89 +1,43 @@
 import { Router, Request, Response } from 'express';
+import { dbStore } from '../db/store.js';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createEvidenceSchema, batchCreateEvidenceSchema } from '../schemas/index.js';
-import { dbStore } from '../db/store.js';
-import { applyPagination } from '../utils/pagination.js';
 import { handleRouteError } from '../utils/errors.js';
+import { applyPagination } from '../utils/pagination.js';
 
-export const evidenceRouter = Router();
+const router = Router();
 
-// List evidences in workspace with pagination
-evidenceRouter.get(
-  '/evidences',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const researchId = req.query.research_id as string | undefined;
+router.use(authenticate);
+router.use(requireWorkspace);
 
-    try {
-      const allEvidences = await dbStore.listEvidences(workspaceId, researchId);
-      const { data, pagination } = applyPagination(allEvidences, req.query.page, req.query.limit);
-
-      res.json({
-        evidences: data,
-        pagination,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'listEvidences');
-    }
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const researchId = req.query.research_id ? String(req.query.research_id) : undefined;
+    const list = await dbStore.listEvidences(req.workspaceId!, researchId);
+    const paginated = applyPagination(list, req.query.page, req.query.limit);
+    res.json({ success: true, ...paginated });
+  } catch (err) {
+    handleRouteError(res, err, 'ListEvidences');
   }
-);
+});
 
-// Create single evidence
-evidenceRouter.post(
-  '/evidences',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: createEvidenceSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { research_id, quote, context, confidence_level, tags } = req.body;
-
-    try {
-      const evidence = await dbStore.createEvidence(workspaceId, {
-        research_id,
-        quote,
-        context,
-        confidence_level,
-        tags,
-      });
-      res.status(201).json({ evidence });
-    } catch (error: any) {
-      handleRouteError(res, error, 'createEvidence');
-    }
+router.post('/', requireRole(['owner', 'admin', 'member']), validate({ body: createEvidenceSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.createEvidence(req.workspaceId!, req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'CreateEvidence');
   }
-);
+});
 
-// Batch create evidences
-evidenceRouter.post(
-  '/evidences/batch',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: batchCreateEvidenceSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { research_id, evidences } = req.body;
-
-    try {
-      const created = [];
-      for (const e of evidences) {
-        const resEvidence = await dbStore.createEvidence(workspaceId, {
-          research_id,
-          quote: e.quote,
-          context: e.context || null,
-          confidence_level: e.confidence_level || 'medium',
-          tags: e.tags || [],
-        });
-        created.push(resEvidence);
-      }
-      res.status(201).json({ evidences: created });
-    } catch (error: any) {
-      handleRouteError(res, error, 'batchCreateEvidence');
-    }
+router.post('/batch', requireRole(['owner', 'admin', 'member']), validate({ body: batchCreateEvidenceSchema }), async (req: Request, res: Response) => {
+  try {
+    const items = await dbStore.batchCreateEvidences(req.workspaceId!, req.body.evidences);
+    res.status(201).json({ success: true, data: items });
+  } catch (err) {
+    handleRouteError(res, err, 'BatchCreateEvidence');
   }
-);
+});
 
+export const evidenceRouter = router;

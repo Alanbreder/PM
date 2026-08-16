@@ -1,124 +1,56 @@
 import { Router, Request, Response } from 'express';
+import { dbStore } from '../db/store.js';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { createExperimentSchema, updateExperimentSchema } from '../schemas/index.js';
-import { dbStore } from '../db/store.js';
-import { applyPagination } from '../utils/pagination.js';
+import { createExperimentSchema, updateExperimentSchema, uuidParamSchema } from '../schemas/index.js';
 import { handleRouteError } from '../utils/errors.js';
+import { applyPagination } from '../utils/pagination.js';
 
-export const experimentRouter = Router();
+const router = Router();
 
-// GET /api/experiments - List experiments
-experimentRouter.get(
-  '/experiments',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const hypothesisId = req.query.hypothesis_id as string | undefined;
+router.use(authenticate);
+router.use(requireWorkspace);
 
-    try {
-      const allExperiments = await dbStore.listExperiments(workspaceId, hypothesisId);
-      const { data, pagination } = applyPagination(allExperiments, req.query.page, req.query.limit);
-
-      res.json({
-        experiments: data,
-        pagination,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'listExperiments');
-    }
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const hypothesisId = req.query.hypothesis_id ? String(req.query.hypothesis_id) : undefined;
+    const list = await dbStore.listExperiments(req.workspaceId!, hypothesisId);
+    const paginated = applyPagination(list, req.query.page, req.query.limit);
+    res.json({ success: true, ...paginated });
+  } catch (err) {
+    handleRouteError(res, err, 'ListExperiments');
   }
-);
+});
 
-// GET /api/experiments/:id - Get single experiment
-experimentRouter.get(
-  '/experiments/:id',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { id } = req.params;
-
-    try {
-      const experiment = await dbStore.getExperimentById(workspaceId, id);
-      if (!experiment) {
-        res.status(404).json({
-          success: false,
-          error: 'NOT_FOUND',
-          message: 'Experimento não encontrado neste workspace.',
-        });
-        return;
-      }
-      res.json({ experiment });
-    } catch (error: any) {
-      handleRouteError(res, error, 'getExperimentById');
-    }
+router.post('/', requireRole(['owner', 'admin', 'member']), validate({ body: createExperimentSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.createExperiment(req.workspaceId!, req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'CreateExperiment');
   }
-);
+});
 
-// POST /api/experiments - Create new experiment
-experimentRouter.post(
-  '/experiments',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: createExperimentSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { hypothesis_id, title, description, method, success_criteria } = req.body;
-
-    try {
-      const experiment = await dbStore.createExperiment(workspaceId, {
-        hypothesis_id,
-        title,
-        description,
-        method,
-        success_criteria,
-      });
-      res.status(201).json({ experiment });
-    } catch (error: any) {
-      handleRouteError(res, error, 'createExperiment');
+router.get('/:id', validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.getExperimentById(req.workspaceId!, req.params.id as string);
+    if (!item) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Experimento não encontrado' });
+      return;
     }
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'GetExperiment');
   }
-);
+});
 
-// PATCH /api/experiments/:id - Update experiment
-experimentRouter.patch(
-  '/experiments/:id',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: updateExperimentSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { id } = req.params;
-
-    try {
-      const updated = await dbStore.updateExperiment(workspaceId, id, req.body);
-      res.json({ experiment: updated });
-    } catch (error: any) {
-      handleRouteError(res, error, 'updateExperiment');
-    }
+router.patch('/:id', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema, body: updateExperimentSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.updateExperiment(req.workspaceId!, req.params.id as string, req.body);
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'UpdateExperiment');
   }
-);
+});
 
-// DELETE /api/experiments/:id - Delete experiment
-experimentRouter.delete(
-  '/experiments/:id',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { id } = req.params;
-
-    try {
-      await dbStore.deleteExperiment(workspaceId, id);
-      res.json({ success: true, message: 'Experimento excluído com sucesso.' });
-    } catch (error: any) {
-      handleRouteError(res, error, 'deleteExperiment');
-    }
-  }
-);
-
+export const experimentRouter = router;

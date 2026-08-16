@@ -1,10 +1,9 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import admin from 'firebase-admin';
 
-if (!getApps().length) {
-  initializeApp({
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '',
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: process.env.FIREBASE_PROJECT_ID || 'product-os',
   });
 }
 
-export const adminAuth = getAuth();
+export const adminAuth = admin.auth();

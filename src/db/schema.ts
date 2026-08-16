@@ -1,22 +1,33 @@
-import { relations } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, integer, jsonb, index, unique, foreignKey } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  integer,
+  jsonb,
+  primaryKey,
+  foreignKey,
+  check,
+  index,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
-// Users table (synchronized from Firebase Auth or local auth)
+// Users table (mirrors Firebase Auth)
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  uid: text('uid').notNull().unique(), // Firebase Auth UID / local auth UID
-  email: text('email').notNull(),
-  name: text('name'),
-  role: text('role').default('user'),
+  uid: varchar('uid', { length: 255 }).primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Workspaces
+// Workspaces table
 export const workspaces = pgTable('workspaces', {
   id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  slug: text('slug').notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -24,286 +35,212 @@ export const workspaces = pgTable('workspaces', {
 // Workspace Members
 export const workspaceMembers = pgTable('workspace_members', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  userId: text('user_id').notNull(),
-  role: text('role').notNull().default('member'), // owner, admin, member, viewer
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => users.uid, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 50 }).notNull().default('member'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_workspace_members_workspace_id').on(table.workspaceId),
-  unique('uq_workspace_members_workspace_user').on(table.workspaceId, table.userId),
-]);
+}, (table) => {
+  return {
+    workspaceUserIdx: index('idx_wm_workspace_user').on(table.workspaceId, table.userId),
+  };
+});
 
-// Researches (Entrevistas, Descobertas, Transcrições)
+// Researches table
 export const researches = pgTable('researches', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  title: text('title').notNull(),
-  sourceType: text('source_type').notNull(), // 'interview', 'survey', 'support_ticket', 'user_testing', 'sales_call'
-  rawContent: text('raw_content').notNull(),
-  participantInfo: jsonb('participant_info').$type<Record<string, any>>().default({}),
-  status: text('status').notNull().default('processed'), // 'draft', 'processing', 'processed'
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  objective: text('objective'),
+  targetAudience: text('target_audience'),
+  rawNotes: text('raw_notes'),
+  keyFindings: jsonb('key_findings').$type<string[]>(),
+  suggestedProblems: jsonb('suggested_problems').$type<any[]>(),
+  analysisStatus: varchar('analysis_status', { length: 50 }).notNull().default('pending'),
+  status: varchar('status', { length: 50 }).notNull().default('draft'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_researches_workspace_id').on(table.workspaceId),
-  unique('uq_researches_id_workspace').on(table.id, table.workspaceId),
-]);
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_researches_workspace').on(table.workspaceId),
+  };
+});
 
-// Evidences (Fatos atômicos extraídos das pesquisas)
+// Evidences table with composite foreign key for cross-tenant integrity
 export const evidences = pgTable('evidences', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  researchId: uuid('research_id')
-    .references(() => researches.id, { onDelete: 'cascade' })
-    .notNull(),
-  quote: text('quote').notNull(),
-  context: text('context'),
-  confidenceLevel: text('confidence_level').notNull().default('medium'), // 'high', 'medium', 'low'
-  tags: jsonb('tags').$type<string[]>().default([]),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  researchId: uuid('research_id').notNull(),
+  content: text('content').notNull(),
+  source: varchar('source', { length: 255 }),
+  impactScore: integer('impact_score').notNull().default(3),
+  tags: jsonb('tags').$type<string[]>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_evidences_workspace_id').on(table.workspaceId),
-  index('idx_evidences_research_id').on(table.researchId),
-  unique('uq_evidences_id_workspace').on(table.id, table.workspaceId),
-  foreignKey({
-    columns: [table.researchId, table.workspaceId],
-    foreignColumns: [researches.id, researches.workspaceId],
-    name: 'fk_evidences_research_ws',
-  }).onDelete('cascade'),
-]);
+}, (table) => {
+  return {
+    researchFk: foreignKey({
+      columns: [table.researchId, table.workspaceId],
+      foreignColumns: [researches.id, researches.workspaceId],
+      name: 'fk_evidences_research_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_evidences_workspace').on(table.workspaceId),
+    researchIdx: index('idx_evidences_research').on(table.researchId),
+  };
+});
 
-// Problems (Dores e necessidades mapeadas)
+// Problems table
 export const problems = pgTable('problems', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  title: text('title').notNull(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
-  impactLevel: text('impact_level').notNull().default('medium'), // 'critical', 'high', 'medium', 'low'
-  status: text('status').notNull().default('open'), // 'open', 'investigating', 'validated', 'deprioritized'
+  impact: varchar('impact', { length: 50 }).notNull().default('medium'),
+  frequency: varchar('frequency', { length: 50 }).notNull().default('occasional'),
+  status: varchar('status', { length: 50 }).notNull().default('identified'),
+  score: integer('score').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_problems_workspace_id').on(table.workspaceId),
-  unique('uq_problems_id_workspace').on(table.id, table.workspaceId),
-]);
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_problems_workspace').on(table.workspaceId),
+  };
+});
 
-// Problem Evidences (N:N Junction Table)
+// Problem Evidences (Junction table with composite FKs)
 export const problemEvidences = pgTable('problem_evidences', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  problemId: uuid('problem_id')
-    .references(() => problems.id, { onDelete: 'cascade' })
-    .notNull(),
-  evidenceId: uuid('evidence_id')
-    .references(() => evidences.id, { onDelete: 'cascade' })
-    .notNull(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  problemId: uuid('problem_id').notNull(),
+  evidenceId: uuid('evidence_id').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => [
-  unique('uq_problem_evidences_problem_evidence').on(table.problemId, table.evidenceId),
-  index('idx_problem_evidences_workspace_id').on(table.workspaceId),
-  index('idx_problem_evidences_problem_id').on(table.problemId),
-  index('idx_problem_evidences_evidence_id').on(table.evidenceId),
-  foreignKey({
-    columns: [table.problemId, table.workspaceId],
-    foreignColumns: [problems.id, problems.workspaceId],
-    name: 'fk_problem_evidences_problem_ws',
-  }).onDelete('cascade'),
-  foreignKey({
-    columns: [table.evidenceId, table.workspaceId],
-    foreignColumns: [evidences.id, evidences.workspaceId],
-    name: 'fk_problem_evidences_evidence_ws',
-  }).onDelete('cascade'),
-]);
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.problemId, table.evidenceId] }),
+    problemFk: foreignKey({
+      columns: [table.problemId, table.workspaceId],
+      foreignColumns: [problems.id, problems.workspaceId],
+      name: 'fk_pe_problem_workspace',
+    }).onDelete('cascade'),
+    evidenceFk: foreignKey({
+      columns: [table.evidenceId, table.workspaceId],
+      foreignColumns: [evidences.id, evidences.workspaceId],
+      name: 'fk_pe_evidence_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_pe_workspace').on(table.workspaceId),
+  };
+});
 
-// Opportunities (Áreas de oportunidade de valor / resultado)
+// Opportunities table
 export const opportunities = pgTable('opportunities', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  title: text('title').notNull(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
-  status: text('status').notNull().default('draft'), // 'draft', 'active', 'archived'
+  effort: varchar('effort', { length: 50 }).notNull().default('medium'),
+  value: varchar('value', { length: 50 }).notNull().default('medium'),
+  status: varchar('status', { length: 50 }).notNull().default('backlog'),
+  score: integer('score').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_opportunities_workspace_id').on(table.workspaceId),
-  unique('uq_opportunities_id_workspace').on(table.id, table.workspaceId),
-]);
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_opportunities_workspace').on(table.workspaceId),
+  };
+});
 
-// Opportunity Problems (N:N Junction Table)
+// Opportunity Problems (Junction table with composite FKs)
 export const opportunityProblems = pgTable('opportunity_problems', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  opportunityId: uuid('opportunity_id')
-    .references(() => opportunities.id, { onDelete: 'cascade' })
-    .notNull(),
-  problemId: uuid('problem_id')
-    .references(() => problems.id, { onDelete: 'cascade' })
-    .notNull(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  opportunityId: uuid('opportunity_id').notNull(),
+  problemId: uuid('problem_id').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => [
-  unique('uq_opportunity_problems_opp_problem').on(table.opportunityId, table.problemId),
-  index('idx_opportunity_problems_workspace_id').on(table.workspaceId),
-  index('idx_opportunity_problems_opportunity_id').on(table.opportunityId),
-  index('idx_opportunity_problems_problem_id').on(table.problemId),
-  foreignKey({
-    columns: [table.opportunityId, table.workspaceId],
-    foreignColumns: [opportunities.id, opportunities.workspaceId],
-    name: 'fk_opportunity_problems_opp_ws',
-  }).onDelete('cascade'),
-  foreignKey({
-    columns: [table.problemId, table.workspaceId],
-    foreignColumns: [problems.id, problems.workspaceId],
-    name: 'fk_opportunity_problems_problem_ws',
-  }).onDelete('cascade'),
-]);
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.opportunityId, table.problemId] }),
+    opportunityFk: foreignKey({
+      columns: [table.opportunityId, table.workspaceId],
+      foreignColumns: [opportunities.id, opportunities.workspaceId],
+      name: 'fk_op_opportunity_workspace',
+    }).onDelete('cascade'),
+    problemFk: foreignKey({
+      columns: [table.problemId, table.workspaceId],
+      foreignColumns: [problems.id, problems.workspaceId],
+      name: 'fk_op_problem_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_op_workspace').on(table.workspaceId),
+  };
+});
 
-// Hypotheses (Hipóteses com métricas de validação)
+// Hypotheses table with composite foreign key
 export const hypotheses = pgTable('hypotheses', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  opportunityId: uuid('opportunity_id')
-    .references(() => opportunities.id, { onDelete: 'cascade' })
-    .notNull(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  opportunityId: uuid('opportunity_id').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
   statement: text('statement').notNull(),
-  metricTarget: text('metric_target').notNull(),
-  confidenceScore: integer('confidence_score').notNull().default(50),
-  status: text('status').notNull().default('draft'), // 'draft', 'testing', 'validated', 'invalidated'
+  metricsToValidate: text('metrics_to_validate'),
+  confidenceScore: integer('confidence_score').default(3),
+  status: varchar('status', { length: 50 }).notNull().default('draft'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_hypotheses_workspace_id').on(table.workspaceId),
-  index('idx_hypotheses_opportunity_id').on(table.opportunityId),
-  unique('uq_hypotheses_id_workspace').on(table.id, table.workspaceId),
-  foreignKey({
-    columns: [table.opportunityId, table.workspaceId],
-    foreignColumns: [opportunities.id, opportunities.workspaceId],
-    name: 'fk_hypotheses_opp_ws',
-  }).onDelete('cascade'),
-]);
+}, (table) => {
+  return {
+    opportunityFk: foreignKey({
+      columns: [table.opportunityId, table.workspaceId],
+      foreignColumns: [opportunities.id, opportunities.workspaceId],
+      name: 'fk_hypotheses_opportunity_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_hypotheses_workspace').on(table.workspaceId),
+    opportunityIdx: index('idx_hypotheses_opportunity').on(table.opportunityId),
+  };
+});
 
-// Experiments (Experimentos de validação de hipóteses)
+// Experiments table with composite foreign key
 export const experiments = pgTable('experiments', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .references(() => workspaces.id, { onDelete: 'cascade' })
-    .notNull(),
-  hypothesisId: uuid('hypothesis_id')
-    .references(() => hypotheses.id, { onDelete: 'cascade' })
-    .notNull(),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
-  method: text('method').notNull(),
-  successCriteria: text('success_criteria').notNull(),
-  status: text('status').notNull().default('draft'), // 'draft', 'running', 'completed', 'cancelled'
-  result: text('result'), // 'confirmed', 'partially_confirmed', 'rejected', 'inconclusive'
-  learning: text('learning'),
-  startedAt: timestamp('started_at'),
-  completedAt: timestamp('completed_at'),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  hypothesisId: uuid('hypothesis_id').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  methodology: text('methodology'),
+  sampleSize: integer('sample_size'),
+  status: varchar('status', { length: 50 }).notNull().default('draft'),
+  results: text('results'),
+  learnings: text('learnings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index('idx_experiments_workspace_id').on(table.workspaceId),
-  index('idx_experiments_hypothesis_id').on(table.hypothesisId),
-  unique('uq_experiments_id_workspace').on(table.id, table.workspaceId),
-  foreignKey({
-    columns: [table.hypothesisId, table.workspaceId],
-    foreignColumns: [hypotheses.id, hypotheses.workspaceId],
-    name: 'fk_experiments_hyp_ws',
-  }).onDelete('cascade'),
-]);
+}, (table) => {
+  return {
+    hypothesisFk: foreignKey({
+      columns: [table.hypothesisId, table.workspaceId],
+      foreignColumns: [hypotheses.id, hypotheses.workspaceId],
+      name: 'fk_experiments_hypothesis_workspace',
+    }).onDelete('cascade'),
+    statusCheck: check('chk_experiment_status', sql`${table.status} IN ('draft', 'running', 'completed', 'cancelled')`),
+    workspaceIdx: index('idx_experiments_workspace').on(table.workspaceId),
+    hypothesisIdx: index('idx_experiments_hypothesis').on(table.hypothesisId),
+  };
+});
 
-// Relations definitions
-export const workspacesRelations = relations(workspaces, ({ many }) => ({
-  members: many(workspaceMembers),
-  researches: many(researches),
-  evidences: many(evidences),
-  problems: many(problems),
-  opportunities: many(opportunities),
-  hypotheses: many(hypotheses),
-  experiments: many(experiments),
-}));
-
-export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [workspaceMembers.workspaceId],
-    references: [workspaces.id],
-  }),
-}));
-
-export const researchesRelations = relations(researches, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [researches.workspaceId],
-    references: [workspaces.id],
-  }),
-  evidences: many(evidences),
-}));
-
-export const evidencesRelations = relations(evidences, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [evidences.workspaceId],
-    references: [workspaces.id],
-  }),
-  research: one(researches, {
-    fields: [evidences.researchId],
-    references: [researches.id],
-  }),
-  problemLinks: many(problemEvidences),
-}));
-
-export const problemsRelations = relations(problems, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [problems.workspaceId],
-    references: [workspaces.id],
-  }),
-  evidenceLinks: many(problemEvidences),
-  opportunityLinks: many(opportunityProblems),
-}));
-
-export const opportunitiesRelations = relations(opportunities, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [opportunities.workspaceId],
-    references: [workspaces.id],
-  }),
-  problemLinks: many(opportunityProblems),
-  hypotheses: many(hypotheses),
-}));
-
-export const hypothesesRelations = relations(hypotheses, ({ one, many }) => ({
-  workspace: one(workspaces, {
-    fields: [hypotheses.workspaceId],
-    references: [workspaces.id],
-  }),
-  opportunity: one(opportunities, {
-    fields: [hypotheses.opportunityId],
-    references: [opportunities.id],
-  }),
-  experiments: many(experiments),
-}));
-
-export const experimentsRelations = relations(experiments, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [experiments.workspaceId],
-    references: [workspaces.id],
-  }),
-  hypothesis: one(hypotheses, {
-    fields: [experiments.hypothesisId],
-    references: [hypotheses.id],
-  }),
-}));
+// Decisions table with composite foreign key
+export const decisions = pgTable('decisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  experimentId: uuid('experiment_id').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  decision: text('decision').notNull(),
+  rationale: text('rationale'),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    experimentFk: foreignKey({
+      columns: [table.experimentId, table.workspaceId],
+      foreignColumns: [experiments.id, experiments.workspaceId],
+      name: 'fk_decisions_experiment_workspace',
+    }).onDelete('cascade'),
+    statusCheck: check('chk_decision_status', sql`${table.status} IN ('pending', 'accepted', 'rejected', 'deferred')`),
+    workspaceIdx: index('idx_decisions_workspace').on(table.workspaceId),
+    experimentIdx: index('idx_decisions_experiment').on(table.experimentId),
+  };
+});

@@ -1,181 +1,64 @@
 import { Router, Request, Response } from 'express';
+import { dbStore } from '../db/store.js';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import {
-  createProblemSchema,
-  updateProblemSchema,
-  linkProblemEvidencesSchema,
-  uuidParamSchema,
-  uuidSchema,
-} from '../schemas/index.js';
-import { dbStore } from '../db/store.js';
-import { z } from 'zod';
-import { applyPagination } from '../utils/pagination.js';
+import { createProblemSchema, updateProblemSchema, uuidParamSchema, linkProblemEvidencesSchema } from '../schemas/index.js';
 import { handleRouteError } from '../utils/errors.js';
+import { applyPagination } from '../utils/pagination.js';
 
-export const problemRouter = Router();
+const router = Router();
 
-// List problems with attached evidences and pagination
-problemRouter.get(
-  '/problems',
-  authenticate,
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
+router.use(authenticate);
+router.use(requireWorkspace);
 
-    try {
-      const allProblems = await dbStore.listProblems(workspaceId);
-      const { data, pagination } = applyPagination(allProblems, req.query.page, req.query.limit);
-
-      res.json({
-        problems: data,
-        pagination,
-      });
-    } catch (error: any) {
-      handleRouteError(res, error, 'listProblems');
-    }
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const list = await dbStore.listProblems(req.workspaceId!);
+    const paginated = applyPagination(list, req.query.page, req.query.limit);
+    res.json({ success: true, ...paginated });
+  } catch (err) {
+    handleRouteError(res, err, 'ListProblems');
   }
-);
+});
 
-// Get single problem by ID
-problemRouter.get(
-  '/problems/:id',
-  authenticate,
-  validate({ params: uuidParamSchema }),
-  requireWorkspace,
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const problemId = req.params.id;
-
-    try {
-      const problem = await dbStore.getProblemById(workspaceId, problemId);
-      if (!problem) {
-        res.status(404).json({
-          success: false,
-          error: 'NOT_FOUND',
-          message: 'Problema não encontrado neste workspace.',
-        });
-        return;
-      }
-      res.json({ problem });
-    } catch (error: any) {
-      handleRouteError(res, error, 'getProblemById');
-    }
+router.post('/', requireRole(['owner', 'admin', 'member']), validate({ body: createProblemSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.createProblem(req.workspaceId!, req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'CreateProblem');
   }
-);
+});
 
-// Create problem with optional evidence links
-problemRouter.post(
-  '/problems',
-  authenticate,
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  validate({ body: createProblemSchema }),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { title, description, impact_level, status, evidence_ids } = req.body;
-
-    try {
-      const problem = await dbStore.createProblem(
-        workspaceId,
-        { title, description, impact_level, status },
-        evidence_ids
-      );
-      res.status(201).json({ problem });
-    } catch (error: any) {
-      handleRouteError(res, error, 'createProblem');
+router.get('/:id', validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.getProblemById(req.workspaceId!, req.params.id as string);
+    if (!item) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Problema não encontrado' });
+      return;
     }
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'GetProblem');
   }
-);
+});
 
-// Update problem details
-problemRouter.patch(
-  '/problems/:id',
-  authenticate,
-  validate({ params: uuidParamSchema, body: updateProblemSchema }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const problemId = req.params.id;
-    const { title, description, impact_level, status, evidence_ids } = req.body;
-
-    try {
-      const updated = await dbStore.updateProblem(
-        workspaceId,
-        problemId,
-        { title, description, impact_level, status },
-        evidence_ids
-      );
-      res.json({ problem: updated });
-    } catch (error: any) {
-      handleRouteError(res, error, 'updateProblem');
-    }
+router.patch('/:id', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema, body: updateProblemSchema }), async (req: Request, res: Response) => {
+  try {
+    const item = await dbStore.updateProblem(req.workspaceId!, req.params.id as string, req.body);
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleRouteError(res, err, 'UpdateProblem');
   }
-);
+});
 
-// Delete problem
-problemRouter.delete(
-  '/problems/:id',
-  authenticate,
-  validate({ params: uuidParamSchema }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const problemId = req.params.id;
-
-    try {
-      await dbStore.deleteProblem(workspaceId, problemId);
-      res.json({ success: true, message: 'Problema removido com sucesso.' });
-    } catch (error: any) {
-      handleRouteError(res, error, 'deleteProblem');
-    }
+router.post('/:id/evidences', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema, body: linkProblemEvidencesSchema }), async (req: Request, res: Response) => {
+  try {
+    await dbStore.linkProblemEvidences(req.workspaceId!, req.params.id as string, req.body.evidence_ids);
+    res.json({ success: true, message: 'Evidências vinculadas com sucesso' });
+  } catch (err) {
+    handleRouteError(res, err, 'LinkProblemEvidences');
   }
-);
+});
 
-// Link additional evidences to existing problem
-problemRouter.post(
-  '/problems/:id/link-evidences',
-  authenticate,
-  validate({ params: uuidParamSchema, body: linkProblemEvidencesSchema }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const problemId = req.params.id;
-    const { evidence_ids } = req.body;
-
-    try {
-      const links = await dbStore.linkEvidencesToProblem(workspaceId, problemId, evidence_ids);
-      res.json({ success: true, links });
-    } catch (error: any) {
-      handleRouteError(res, error, 'linkEvidencesToProblem');
-    }
-  }
-);
-
-// Unlink specific evidence from problem
-problemRouter.delete(
-  '/problems/:id/evidences/:evidenceId',
-  authenticate,
-  validate({
-    params: z.object({
-      id: uuidSchema,
-      evidenceId: uuidSchema,
-    }),
-  }),
-  requireWorkspace,
-  requireRole(['owner', 'admin', 'member']),
-  async (req: Request, res: Response) => {
-    const workspaceId = req.workspaceId!;
-    const { id: problemId, evidenceId } = req.params;
-
-    try {
-      await dbStore.unlinkEvidenceFromProblem(workspaceId, problemId, evidenceId);
-      res.json({ success: true, message: 'Evidência desvinculada do problema com sucesso.' });
-    } catch (error: any) {
-      handleRouteError(res, error, 'unlinkEvidenceFromProblem');
-    }
-  }
-);
+export const problemRouter = router;

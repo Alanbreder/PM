@@ -1,180 +1,200 @@
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
 
+export interface User {
+  uid: string;
+  email: string;
+  name?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  description?: string;
+  role: WorkspaceRole;
   created_at: string;
 }
 
-export type ResearchSourceType = 'interview' | 'survey' | 'feedback' | 'usability_test' | 'document';
+export interface WorkspaceMember {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: WorkspaceRole;
+  created_at: string;
+  user_email?: string;
+  user_name?: string;
+}
 
 export interface Research {
   id: string;
   workspace_id: string;
   title: string;
-  source_type: ResearchSourceType;
-  source_url?: string | null;
-  participant_info: {
-    name?: string;
-    role?: string;
-    company?: string;
-    segment?: string;
-    [key: string]: any;
-  };
-  raw_content: string;
-  status: 'draft' | 'processing' | 'processed';
+  objective?: string;
+  target_audience?: string;
+  raw_notes?: string;
+  key_findings?: string[];
+  suggested_problems?: Array<{
+    title: string;
+    description: string;
+    impact: 'low' | 'medium' | 'high' | 'critical';
+    evidence: string;
+  }>;
+  analysis_status: 'pending' | 'analyzing' | 'completed' | 'error';
+  status: 'draft' | 'analyzed' | 'archived';
   created_at: string;
   updated_at: string;
-  evidences?: Evidence[];
 }
-
-export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 export interface Evidence {
   id: string;
   workspace_id: string;
   research_id: string;
-  quote: string;
-  context?: string | null;
-  confidence_level: ConfidenceLevel;
-  tags: string[];
+  content: string;
+  source?: string;
+  impact_score: number;
+  tags?: string[];
   created_at: string;
-  updated_at?: string;
-  research_title?: string;
-  research_source_type?: ResearchSourceType;
-  research_participant_name?: string;
 }
-
-export type ProblemImpact = 'critical' | 'high' | 'medium' | 'low';
-export type ProblemStatus = 'identified' | 'exploring' | 'validated' | 'archived';
 
 export interface Problem {
   id: string;
   workspace_id: string;
   title: string;
   description: string;
-  impact_level: ProblemImpact;
-  status: ProblemStatus;
-  evidences?: Evidence[];
+  impact: 'low' | 'medium' | 'high' | 'critical';
+  frequency: 'rare' | 'occasional' | 'frequent' | 'constant';
+  status: 'identified' | 'validating' | 'validated' | 'rejected' | 'solved';
+  score?: number;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
+  evidence_count?: number;
 }
-
-export type OpportunityStatus = 'draft' | 'active' | 'archived';
 
 export interface Opportunity {
   id: string;
   workspace_id: string;
   title: string;
   description: string;
-  status: OpportunityStatus;
-  problems?: Problem[];
+  effort: 'low' | 'medium' | 'high' | 'very_high';
+  value: 'low' | 'medium' | 'high' | 'transformative';
+  status: 'backlog' | 'in_discovery' | 'prioritized' | 'deferred' | 'dropped';
+  score?: number;
   created_at: string;
   updated_at: string;
+  problem_count?: number;
 }
-
-export type HypothesisStatus = 'draft' | 'testing' | 'validated' | 'invalidated';
 
 export interface Hypothesis {
   id: string;
   workspace_id: string;
-  opportunity_id?: string | null;
+  opportunity_id: string;
+  title: string;
   statement: string;
-  metric_target?: string | null;
-  confidence_score?: number | null;
-  status: HypothesisStatus;
+  metrics_to_validate?: string;
+  confidence_score?: number;
+  status: 'draft' | 'in_testing' | 'validated' | 'invalidated';
   created_at: string;
-  updated_at?: string;
-  opportunity_title?: string;
+  updated_at: string;
 }
-
-export type ToastType = 'success' | 'error' | 'info' | 'warning';
-
-export interface ToastMessage {
-  id: string;
-  type: ToastType;
-  title: string;
-  message?: string;
-}
-
-export interface BreadcrumbItem {
-  label: string;
-  onClick?: () => void;
-  active?: boolean;
-}
-
-// AI Suggestions (Human-in-the-loop)
-export interface SuggestedEvidenceItem {
-  id: string; // client temporary ID
-  quote: string;
-  context?: string;
-  confidence_level: ConfidenceLevel;
-  tags: string[];
-  status: 'accepted' | 'rejected';
-  isEditing?: boolean;
-}
-
-export interface SuggestedProblemItem {
-  id: string; // client temporary ID
-  title: string;
-  description: string;
-  impact_level: ProblemImpact;
-  supporting_evidence_indices: number[];
-  status: 'accepted' | 'rejected';
-  isEditing?: boolean;
-}
-
-export interface AIAnalysisState {
-  researchId: string;
-  evidences: SuggestedEvidenceItem[];
-  problems: SuggestedProblemItem[];
-  isAnalyzing: boolean;
-  isSaving: boolean;
-  error?: string | null;
-}
-
-// Stage 5: Experimentos e Aprendizados
-export type ExperimentStatus = 'draft' | 'running' | 'completed' | 'cancelled';
-export type ExperimentResult = 'confirmed' | 'partially_confirmed' | 'rejected' | 'inconclusive';
 
 export interface Experiment {
   id: string;
   workspace_id: string;
   hypothesis_id: string;
   title: string;
-  description: string;
-  method: string;
-  success_criteria: string;
-  status: ExperimentStatus;
-  result?: ExperimentResult | null;
-  learning?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
+  description?: string;
+  methodology?: string;
+  sample_size?: number;
+  status: 'draft' | 'running' | 'completed' | 'cancelled';
+  results?: string;
+  learnings?: string;
   created_at: string;
   updated_at: string;
-  // Joined or context metadata for UI displays:
-  hypothesis_statement?: string;
-  opportunity_id?: string;
-  opportunity_title?: string;
 }
 
-export interface CreateExperimentInput {
-  hypothesis_id: string;
+export type DecisionStatus = 'pending' | 'accepted' | 'rejected' | 'deferred';
+
+export interface Decision {
+  id: string;
+  workspace_id: string;
+  experiment_id: string;
   title: string;
-  description: string;
-  method: string;
-  success_criteria: string;
+  description?: string;
+  decision: string;
+  rationale?: string;
+  status: DecisionStatus;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface UpdateExperimentInput {
-  title?: string;
+export interface CreateDecisionInput {
+  experiment_id: string;
+  title: string;
   description?: string;
-  method?: string;
-  success_criteria?: string;
-  status?: ExperimentStatus;
-  result?: ExperimentResult | null;
-  learning?: string | null;
-  started_at?: string | null;
-  completed_at?: string | null;
+  decision: string;
+  rationale?: string;
+  status?: DecisionStatus;
 }
+
+// ETAPA 7: INTELIGÊNCIA DO PRODUTO
+export type InsightSeverity = 'critical' | 'warning' | 'opportunity' | 'info';
+export type InsightType =
+  | 'recurring_pattern'
+  | 'unvalidated_hypothesis'
+  | 'inconclusive_experiment'
+  | 'weak_evidence_decision'
+  | 'contradiction'
+  | 'gap';
+
+export type InsightStatus = 'suggested' | 'accepted' | 'rejected' | 'dismissed';
+
+export interface EntityReference {
+  entity_type: 'research' | 'evidence' | 'problem' | 'opportunity' | 'hypothesis' | 'experiment' | 'decision';
+  entity_id: string;
+  title: string;
+}
+
+export interface ProductInsight {
+  id: string;
+  workspace_id: string;
+  type: InsightType;
+  severity: InsightSeverity;
+  title: string;
+  summary: string;
+  facts: string[];
+  interpretation: string;
+  uncertainties: string[];
+  sources: EntityReference[];
+  status: InsightStatus;
+  feedback_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiscoveryHealthMetrics {
+  workspace_id: string;
+  health_score: number;
+  totals: {
+    researches: number;
+    evidences: number;
+    problems: number;
+    opportunities: number;
+    hypotheses: number;
+    experiments: number;
+    decisions: number;
+  };
+  funnel_conversion: {
+    researches_to_evidences_ratio: number;
+    problems_validated_ratio: number;
+    hypotheses_tested_ratio: number;
+    experiments_decided_ratio: number;
+  };
+  risk_indicators: {
+    decisions_without_evidence_count: number;
+    unvalidated_hypotheses_count: number;
+    inconclusive_experiments_count: number;
+    orphaned_problems_count: number;
+  };
+  last_evaluated_at: string;
+}
+

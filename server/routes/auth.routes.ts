@@ -1,46 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth.js';
 import { dbStore } from '../db/store.js';
+import { handleRouteError } from '../utils/errors.js';
 
-export const authRouter = Router();
+const router = Router();
 
-// Returns profile and accessible workspaces of the currently authenticated user
-authRouter.get('/auth/me', authenticate, async (req: Request, res: Response) => {
-  const user = req.user!;
-
+router.post('/sync-user', async (req: Request, res: Response) => {
   try {
-    const workspaces = await dbStore.listWorkspacesForUser(user.id);
-    const accessibleWorkspaces = await Promise.all(
-      workspaces.map(async (ws) => {
-        const membership = await dbStore.getMembership(ws.id, user.id);
-        return {
-          ...ws,
-          role: membership?.role || 'member',
-        };
-      })
-    );
+    const { uid, email, name } = req.body;
+    if (!uid || !email) {
+      res.status(400).json({ error: 'BAD_REQUEST', message: 'uid e email são obrigatórios' });
+      return;
+    }
 
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-      workspaces: accessibleWorkspaces,
-    });
-  } catch (error: any) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ error: 'Falha ao obter perfil do usuário' });
+    const user = await dbStore.findOrCreateUser(uid, email, name);
+    res.json({ success: true, data: user });
+  } catch (err) {
+    handleRouteError(res, err, 'SyncUser');
   }
 });
 
-authRouter.get('/auth/workspaces', authenticate, async (req: Request, res: Response) => {
-  const user = req.user!;
-
-  try {
-    const workspaces = await dbStore.listWorkspacesForUser(user.id);
-    res.json({ workspaces });
-  } catch (error: any) {
-    console.error('Error listing workspaces:', error);
-    res.status(500).json({ error: 'Erro ao listar workspaces' });
-  }
-});
+export const authRouter = router;

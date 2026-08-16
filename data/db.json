@@ -1,0 +1,318 @@
+{
+  "users": [
+    {
+      "uid": "usr_demo_admin",
+      "email": "demo@productos.io",
+      "name": "Demo Admin"
+    },
+    {
+      "uid": "usr_test",
+      "email": "test@example.com",
+      "name": "Test User"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "ws_default_123",
+      "name": "Workspace Principal",
+      "slug": "workspace-principal",
+      "description": "Workspace padrão para Descoberta de Produto & Decisões OS",
+      "role": "owner",
+      "created_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "workspaceMembers": [
+    {
+      "id": "wsm_demo_001",
+      "workspace_id": "ws_default_123",
+      "user_id": "usr_demo_admin",
+      "role": "owner",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "user_email": "demo@productos.io",
+      "user_name": "Demo Admin"
+    }
+  ],
+  "researches": [
+    {
+      "id": "res_demo_001",
+      "workspace_id": "ws_default_123",
+      "title": "Entrevistas de Onboarding e Retenção B2B",
+      "objective": "Compreender os gargalos de usabilidade e adesão inicial na plataforma",
+      "target_audience": "Gerentes de Produto e Líderes Técnicos",
+      "raw_notes": "Usuários relatam dificuldade no fluxo de configuração de integrações. Falta de clareza nos erros de conexão.",
+      "key_findings": [
+        "Dificuldade no fluxo de onboarding inicial",
+        "Mensagens de erro genéricas causam suporte recorrente"
+      ],
+      "suggested_problems": [
+        {
+          "title": "Configuração de integrações complexa",
+          "description": "Usuários abandonam a configuração inicial por erros de validação obscuros.",
+          "impact": "high",
+          "evidence": "Entrevistas de Onboarding"
+        }
+      ],
+      "analysis_status": "approved",
+      "status": "completed",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "evidences": [
+    {
+      "id": "ev_demo_001",
+      "workspace_id": "ws_default_123",
+      "research_id": "res_demo_001",
+      "content": "68% dos usuários abandonam a tentativa de conexão na primeira falha sem log detalhado.",
+      "source": "Pesquisa de UX & Logs de Suporte",
+      "impact_score": 4,
+      "tags": [
+        "onboarding",
+        "ux",
+        "integracao"
+      ],
+      "created_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "problems": [
+    {
+      "id": "prob_demo_001",
+      "workspace_id": "ws_default_123",
+      "title": "Alta taxa de fricção e abandono no Setup de Integrações",
+      "description": "Os clientes não conseguem diagnosticar por que a integração falhou, gerando chamados repetitivos.",
+      "impact": "high",
+      "frequency": "daily",
+      "status": "active",
+      "score": 85,
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "problemEvidences": [
+    {
+      "id": "pe_demo_001",
+      "workspace_id": "ws_default_123",
+      "problem_id": "prob_demo_001",
+      "evidence_id": "ev_demo_001"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "op_demo_001",
+      "workspace_id": "ws_default_123",
+      "problem_id": "prob_demo_001",
+      "title": "Assistente de Validação de Integração com Diagnóstico em Tempo Real",
+      "value_proposition": "Testar credenciais em tempo real com mensagens explicativas de correção.",
+      "impact_score": 5,
+      "effort_score": 2,
+      "score": 2.5,
+      "status": "backlog",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "hyp_demo_001",
+      "workspace_id": "ws_default_123",
+      "opportunity_id": "op_demo_001",
+      "title": "Validacao de credenciais online reduz chamados em 40%",
+      "statement": "Se oferecermos checagem automatizada no formulário, então a taxa de erro cairá porque o usuário corrige no ato.",
+      "metrics_to_validate": "Taxa de conclusão do setup > 85%",
+      "confidence_score": 4,
+      "status": "testing",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp_demo_001",
+      "workspace_id": "ws_default_123",
+      "hypothesis_id": "hyp_demo_001",
+      "title": "Teste A/B com Validador de Credenciais no Onboarding",
+      "description": "Protótipo interativo com checagem assíncrona de credenciais antes do envio.",
+      "methodology": "Teste A/B com 500 usuários ativos",
+      "sample_size": 500,
+      "status": "completed",
+      "results": "A taxa de erro caiu de 32% para 7% no grupo B, e o tempo médio de setup reduziu em 60%.",
+      "learnings": "Feedback imediato reduz ansiedade do usuário e elimina chamados ao suporte técnico.",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "dec_demo_001",
+      "workspace_id": "ws_default_123",
+      "experiment_id": "exp_demo_001",
+      "title": "Aprovar e Implementar Validador em Tempo Real no Produto",
+      "description": "Com base na redução comprovada de erros de 32% para 7% no experimento.",
+      "decision": "approved",
+      "rationale": "O impacto no sucesso do onboarding é expressivo e reduz custos diretos de suporte.",
+      "status": "approved",
+      "created_at": "2026-08-16T01:40:43.744Z",
+      "updated_at": "2026-08-16T01:40:43.744Z"
+    }
+  ],
+  "insights": [
+    {
+      "id": "ins_1786844881414_0_q49mw",
+      "workspace_id": "ws_default_123",
+      "type": "weak_evidence_decision",
+      "severity": "critical",
+      "title": "Decisão de Produto com Pouca Evidência Factual",
+      "summary": "A decisão \"Aprovar e Implementar Validador em Tempo Real no Produto\" foi aprovada sem um volume robusto de evidências diretas associadas aos problemas do usuário.",
+      "facts": [
+        "Decisão 'Aprovar e Implementar Validador em Tempo Real no Produto' está cadastrada com status 'approved'.",
+        "Existe um total de 1 evidência(s) registrada(s) no workspace."
+      ],
+      "interpretation": "Aprovar decisões sem suporte em dados reais aumenta o risco de investir esforço de engenharia em funcionalidades não prioritárias.",
+      "uncertainties": [
+        "Qual o nível de impacto financeiro/operacional caso a premissa esteja incorreta?"
+      ],
+      "sources": [
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_demo_001",
+          "title": "Aprovar e Implementar Validador em Tempo Real no Produto"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_demo_001",
+          "title": "Teste A/B com Validador de Credenciais no Onboarding"
+        }
+      ],
+      "status": "accepted",
+      "created_at": "2026-08-16T01:48:01.414Z",
+      "updated_at": "2026-08-16T01:48:01.415Z",
+      "feedback_notes": "Aprovado pelo PM para próxima sprint"
+    },
+    {
+      "id": "ins_1786844891025_0_p8sk0",
+      "workspace_id": "ws_default_123",
+      "type": "recurring_pattern",
+      "severity": "opportunity",
+      "title": "Forte convergência entre feedback em tempo real e redução de atrito no onboarding",
+      "summary": "Pesquisas qualitativas, métricas de abandono e o teste A/B demonstram que diagnósticos detalhados de erro resolvem o principal gargalo de integração.",
+      "facts": [
+        "Entrevistas apontaram que mensagens de erro genéricas causam suporte recorrente.",
+        "68% dos usuários abandonam a tentativa de conexão na primeira falha sem log detalhado.",
+        "O teste A/B com validador reduziu a taxa de erro de 32% para 7% e o tempo de setup em 60%."
+      ],
+      "interpretation": "A falta de visibilidade do motivo da falha era a causa raiz do abandono inicial; a validação e feedback em tempo real desbloqueiam a ativação de usuários com alta eficácia.",
+      "uncertainties": [
+        "Sustentação do impacto em clientes com integrações customizadas ou não padrão.",
+        "Impacto na retenção de longo prazo após a conclusão do setup."
+      ],
+      "sources": [
+        {
+          "entity_type": "research",
+          "entity_id": "res_demo_001",
+          "title": "Entrevistas de Onboarding e Retenção B2B"
+        },
+        {
+          "entity_type": "evidence",
+          "entity_id": "ev_demo_001",
+          "title": "68% dos usuários abandonam a tentativa de conexão "
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_demo_001",
+          "title": "Teste A/B com Validador de Credenciais no Onboarding"
+        },
+        {
+          "entity_type": "problem",
+          "entity_id": "prob_demo_001",
+          "title": "Alta taxa de fricção e abandono no Setup de Integrações"
+        }
+      ],
+      "status": "accepted",
+      "created_at": "2026-08-16T01:48:11.024Z",
+      "updated_at": "2026-08-16T01:48:11.025Z",
+      "feedback_notes": "Aprovado pelo PM para próxima sprint"
+    },
+    {
+      "id": "ins_1786844891025_1_ismnc",
+      "workspace_id": "ws_default_123",
+      "type": "unvalidated_hypothesis",
+      "severity": "warning",
+      "title": "Métrica principal da hipótese de suporte não foi aferida no experimento",
+      "summary": "A hipótese central estipulava redução de 40% no volume de chamados, mas os resultados do experimento reportaram apenas taxa de erro e tempo de setup.",
+      "facts": [
+        "Hipótese hyp_demo_001 propõe que a validação de credenciais reduz chamados em 40%.",
+        "Experimento exp_demo_001 mensurou taxa de erro (de 32% para 7%) e tempo de setup (-60%), sem relatar volume de tickets de suporte abertos.",
+        "A decisão dec_demo_001 cita redução de custos de suporte na justificativa."
+      ],
+      "interpretation": "Embora a redução expressiva de erros sugira menor dependência do suporte, a meta quantitativa de redução de 40% em tickets ainda é uma premissa não comprovada empiricamente.",
+      "uncertainties": [
+        "Qual é a correlação exata entre redução de erros no onboarding e abertura de chamados no canal de atendimento.",
+        "Se outros problemas no fluxo continuam motivando chamados de suporte."
+      ],
+      "sources": [
+        {
+          "entity_type": "hypothesis",
+          "entity_id": "hyp_demo_001",
+          "title": "Validacao de credenciais online reduz chamados em 40%"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_demo_001",
+          "title": "Teste A/B com Validador de Credenciais no Onboarding"
+        },
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_demo_001",
+          "title": "Aprovar e Implementar Validador em Tempo Real no Produto"
+        }
+      ],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:48:11.024Z",
+      "updated_at": "2026-08-16T01:48:11.024Z"
+    },
+    {
+      "id": "ins_1786844891025_2_kqkh7",
+      "workspace_id": "ws_default_123",
+      "type": "gap",
+      "severity": "info",
+      "title": "Desalinhamento de ciclo de vida entre hipótese, oportunidade e decisão",
+      "summary": "O experimento foi concluído e a decisão de implementação foi aprovada, mas os status da hipótese e da oportunidade permanecem desatualizados.",
+      "facts": [
+        "O experimento exp_demo_001 tem status completed.",
+        "A decisão dec_demo_001 tem status approved.",
+        "A hipótese hyp_demo_001 permanece com status testing.",
+        "A oportunidade op_demo_001 permanece com status backlog."
+      ],
+      "interpretation": "O fluxo de trabalho avançou operacionalmente para aprovação e desenvolvimento, porém o repositório de discovery não refletiu o encerramento do ciclo de validação.",
+      "uncertainties": [
+        "Se a oportunidade abrange novos entregáveis além do validador aprovado.",
+        "Se há outros experimentos pendentes vinculados à mesma hipótese."
+      ],
+      "sources": [
+        {
+          "entity_type": "hypothesis",
+          "entity_id": "hyp_demo_001",
+          "title": "Validacao de credenciais online reduz chamados em 40%"
+        },
+        {
+          "entity_type": "opportunity",
+          "entity_id": "op_demo_001",
+          "title": "Assistente de Validação de Integração com Diagnóstico em Tempo Real"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_demo_001",
+          "title": "Teste A/B com Validador de Credenciais no Onboarding"
+        },
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_demo_001",
+          "title": "Aprovar e Implementar Validador em Tempo Real no Produto"
+        }
+      ],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:48:11.024Z",
+      "updated_at": "2026-08-16T01:48:11.024Z"
+    }
+  ]
+}

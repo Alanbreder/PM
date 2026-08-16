@@ -1,24 +1,14 @@
 import { z } from 'zod';
 
-export const uuidSchema = z
-  .string()
-  .regex(
-    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
-    { message: 'Identificador UUID inválido' }
-  );
+export const uuidSchema = z.string().uuid('ID com formato UUID inválido');
 
 export const uuidParamSchema = z.object({
   id: uuidSchema,
 });
 
-// Workspace Schemas
 export const createWorkspaceSchema = z.object({
-  name: z.string().min(2, 'O nome do workspace deve ter no mínimo 2 caracteres').max(100),
-  slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
-});
-
-export const updateWorkspaceSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
+  name: z.string().min(3, 'O nome do workspace deve ter no mínimo 3 caracteres').max(255),
+  description: z.string().optional(),
 });
 
 export const addWorkspaceMemberSchema = z.object({
@@ -38,149 +28,141 @@ export const userIdParamSchema = z.object({
 // Research Schemas
 export const createResearchSchema = z.object({
   title: z.string().min(3, 'O título da pesquisa deve ter no mínimo 3 caracteres').max(200),
-  source_type: z.enum(['interview', 'survey', 'feedback', 'usability_test', 'document']).default('interview'),
-  source_url: z.string().url('URL de origem inválida').optional().nullable(),
-  participant_info: z.record(z.string(), z.any()).default({}),
-  raw_content: z.string().min(10, 'O conteúdo da pesquisa deve ter pelo menos 10 caracteres'),
+  objective: z.string().optional(),
+  target_audience: z.string().optional(),
+  raw_notes: z.string().optional(),
 });
 
-export const updateResearchSchema = createResearchSchema.partial();
+export const approveAnalysisSchema = z.object({
+  problemsToCreate: z
+    .array(
+      z.object({
+        title: z.string().min(3),
+        description: z.string(),
+        impact: z.enum(['low', 'medium', 'high', 'critical']),
+        evidence: z.string().min(1),
+      })
+    )
+    .optional(),
+});
 
 // Evidence Schemas
 export const createEvidenceSchema = z.object({
   research_id: uuidSchema,
-  quote: z.string().min(5, 'A citação deve ter pelo menos 5 caracteres'),
-  context: z.string().max(1000).optional().nullable(),
-  confidence_level: z.enum(['high', 'medium', 'low']).default('medium'),
-  tags: z.array(z.string().min(1).max(50)).default([]),
+  content: z.string().min(3, 'O conteúdo da evidência deve ter no mínimo 3 caracteres'),
+  source: z.string().optional(),
+  impact_score: z.number().int().min(1).max(5).default(3),
+  tags: z.array(z.string()).optional(),
 });
 
-export const updateEvidenceSchema = createEvidenceSchema.omit({ research_id: true }).partial();
-
 export const batchCreateEvidenceSchema = z.object({
-  research_id: uuidSchema,
-  evidences: z.array(
-    z.object({
-      quote: z.string().min(5),
-      context: z.string().optional().nullable(),
-      confidence_level: z.enum(['high', 'medium', 'low']).default('medium'),
-      tags: z.array(z.string()).default([]),
-    })
-  ).min(1, 'Pelo menos uma evidência deve ser fornecida'),
+  evidences: z.array(createEvidenceSchema).min(1, 'Envie ao menos 1 evidência para o lote'),
 });
 
 // Problem Schemas
 export const createProblemSchema = z.object({
-  title: z.string().min(3, 'O título do problema deve ter pelo menos 3 caracteres').max(200),
-  description: z.string().min(10, 'A descrição do problema deve ter pelo menos 10 caracteres'),
-  impact_level: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
-  status: z.enum(['identified', 'exploring', 'validated', 'archived']).default('identified'),
-  evidence_ids: z.array(uuidSchema).default([]),
+  title: z.string().min(3, 'O título do problema deve ter no mínimo 3 caracteres').max(255),
+  description: z.string().min(10, 'A descrição deve ter no mínimo 10 caracteres'),
+  impact: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+  frequency: z.enum(['rare', 'occasional', 'frequent', 'constant']).default('occasional'),
+  evidence_ids: z.array(uuidSchema).optional(),
 });
 
-export const updateProblemSchema = createProblemSchema.partial();
+export const updateProblemSchema = z.object({
+  title: z.string().min(3).max(255).optional(),
+  description: z.string().min(10).optional(),
+  impact: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  frequency: z.enum(['rare', 'occasional', 'frequent', 'constant']).optional(),
+  status: z.enum(['identified', 'validating', 'validated', 'rejected', 'solved']).optional(),
+});
 
 export const linkProblemEvidencesSchema = z.object({
-  evidence_ids: z.array(uuidSchema).min(1, 'Pelo menos uma evidência deve ser vinculada'),
+  evidence_ids: z.array(uuidSchema).min(1, 'Pelo menos uma evidência deve ser informada'),
 });
 
 // Opportunity Schemas
 export const createOpportunitySchema = z.object({
-  title: z.string().min(3, 'O título da oportunidade deve ter pelo menos 3 caracteres').max(200),
-  description: z.string().min(10, 'A descrição da oportunidade deve ter pelo menos 10 caracteres'),
-  status: z.enum(['draft', 'active', 'archived']).default('draft'),
-  problem_ids: z.array(uuidSchema).default([]),
-});
-
-export const updateOpportunitySchema = z.object({
-  title: z.string().min(3, 'O título da oportunidade deve ter pelo menos 3 caracteres').max(200).optional(),
-  description: z.string().min(10, 'A descrição da oportunidade deve ter pelo menos 10 caracteres').optional(),
-  status: z.enum(['draft', 'active', 'archived']).optional(),
+  title: z.string().min(3, 'O título da oportunidade deve ter no mínimo 3 caracteres').max(255),
+  description: z.string().min(10, 'A descrição deve ter no mínimo 10 caracteres'),
+  effort: z.enum(['low', 'medium', 'high', 'very_high']).default('medium'),
+  value: z.enum(['low', 'medium', 'high', 'transformative']).default('medium'),
   problem_ids: z.array(uuidSchema).optional(),
 });
 
+export const updateOpportunitySchema = z.object({
+  title: z.string().min(3).max(255).optional(),
+  description: z.string().min(10).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  value: z.enum(['low', 'medium', 'high', 'transformative']).optional(),
+  status: z.enum(['backlog', 'in_discovery', 'prioritized', 'deferred', 'dropped']).optional(),
+});
+
 export const linkOpportunityProblemsSchema = z.object({
-  problem_ids: z.array(uuidSchema).min(1, 'Pelo menos um problema deve ser vinculado'),
+  problem_ids: z.array(uuidSchema).min(1, 'Pelo menos um problema deve ser informado'),
 });
 
 // Hypothesis Schemas
 export const createHypothesisSchema = z.object({
   opportunity_id: uuidSchema,
-  statement: z.string().min(10, 'A formulação da hipótese deve ter pelo menos 10 caracteres'),
-  metric_target: z.string().min(3, 'A métrica de validação deve ser definida'),
+  title: z.string().min(3, 'O título da hipótese deve ter no mínimo 3 caracteres').max(255),
+  statement: z.string().min(10, 'A declaração deve ter no mínimo 10 caracteres'),
+  metrics_to_validate: z.string().optional(),
   confidence_score: z.number().int().min(1).max(5).default(3),
-  status: z.enum(['draft', 'testing', 'validated', 'invalidated']).default('draft'),
 });
-
-export const updateHypothesisSchema = createHypothesisSchema.omit({ opportunity_id: true }).partial();
 
 // Experiment Schemas
 export const createExperimentSchema = z.object({
   hypothesis_id: uuidSchema,
-  title: z.string().min(3, 'O título do experimento deve ter pelo menos 3 caracteres').max(200),
-  description: z.string().min(10, 'A descrição do experimento deve ter pelo menos 10 caracteres'),
-  method: z.string().min(2, 'O método do experimento é obrigatório'),
-  success_criteria: z.string().min(3, 'O critério de sucesso é obrigatório'),
+  title: z.string().min(3, 'O título do experimento deve ter no mínimo 3 caracteres').max(255),
+  description: z.string().optional(),
+  methodology: z.string().optional(),
+  sample_size: z.number().int().positive().optional(),
 });
 
-export const updateExperimentSchema = z.object({
-  title: z.string().min(3, 'O título do experimento deve ter pelo menos 3 caracteres').max(200).optional(),
-  description: z.string().min(10, 'A descrição do experimento deve ter pelo menos 10 caracteres').optional(),
-  method: z.string().min(2, 'O método do experimento é obrigatório').optional(),
-  success_criteria: z.string().min(3, 'O critério de sucesso é obrigatório').optional(),
-  status: z.enum(['draft', 'running', 'completed', 'cancelled']).optional(),
-  result: z.enum(['confirmed', 'partially_confirmed', 'rejected', 'inconclusive']).optional().nullable(),
-  learning: z.string().optional().nullable(),
-  started_at: z.string().optional().nullable(),
-  completed_at: z.string().optional().nullable(),
-});
+export const experimentStatusEnum = z.enum(['draft', 'running', 'completed', 'cancelled']);
 
-// AI Analysis Validation Schemas
-export const suggestedEvidenceSchema = z.object({
-  quote: z.string().min(3, 'A citação deve ter conteúdo extraído do texto'),
-  context: z.string().optional().nullable(),
-  confidence_level: z.enum(['high', 'medium', 'low']).default('medium'),
-  tags: z.array(z.string()).default([]),
-});
+export const updateExperimentSchema = z
+  .object({
+    title: z.string().min(3).max(255).optional(),
+    description: z.string().optional(),
+    methodology: z.string().optional(),
+    sample_size: z.number().int().positive().optional(),
+    status: experimentStatusEnum.optional(),
+    results: z.string().optional(),
+    learnings: z.string().optional(),
+  })
+  .strict();
 
-export const suggestedProblemSchema = z.object({
-  title: z.string().min(3, 'Título do problema sugerido'),
-  description: z.string().min(5, 'Descrição do problema sugerido'),
-  impact_level: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
-  supporting_evidence_indices: z.array(z.number().int().min(0)).default([]),
-});
+// Ask Product Assistant Schema
+export const askProductSchema = z
+  .object({
+    question: z
+      .string()
+      .min(3, 'A pergunta deve ter no mínimo 3 caracteres')
+      .max(4000, 'A pergunta excede o tamanho máximo de 4000 caracteres'),
+  })
+  .strict();
 
-export const aiAnalysisResultSchema = z.object({
-  evidences: z.array(suggestedEvidenceSchema).default([]),
-  problems: z.array(suggestedProblemSchema).default([]),
-});
+// Decision Schemas
+export const decisionStatusEnum = z.enum(['pending', 'accepted', 'rejected', 'deferred']);
 
-export const approveAnalysisSchema = z.object({
-  approved_evidences: z.array(
-    z.object({
-      local_id: z.string().optional(),
-      quote: z.string().min(3),
-      context: z.string().optional().nullable(),
-      confidence_level: z.enum(['high', 'medium', 'low']).default('medium'),
-      tags: z.array(z.string()).default([]),
-    })
-  ).default([]),
-  approved_problems: z.array(
-    z.object({
-      title: z.string().min(3),
-      description: z.string().min(5),
-      impact_level: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
-      status: z.enum(['identified', 'exploring', 'validated', 'archived']).default('identified'),
-      supporting_evidence_local_indices: z.array(z.number().int().min(0)).default([]),
-    })
-  ).default([]),
-});
+export const createDecisionSchema = z
+  .object({
+    experiment_id: uuidSchema,
+    title: z.string().min(3, 'O título da decisão deve ter no mínimo 3 caracteres').max(255),
+    description: z.string().optional(),
+    decision: z.string().min(3, 'A decisão deve ter no mínimo 3 caracteres'),
+    rationale: z.string().optional(),
+    status: decisionStatusEnum.optional().default('pending'),
+  })
+  .strict();
 
-// Ask Product Assistant Schemas
-export const askProductSchema = z.object({
-  prompt: z
-    .string()
-    .trim()
-    .min(3, 'A pergunta deve ter no mínimo 3 caracteres.')
-    .max(2000, 'A pergunta não pode exceder o limite de 2000 caracteres.'),
-});
+export const updateDecisionSchema = z
+  .object({
+    title: z.string().min(3, 'O título da decisão deve ter no mínimo 3 caracteres').max(255).optional(),
+    description: z.string().optional(),
+    decision: z.string().min(3, 'A decisão deve ter no mínimo 3 caracteres').optional(),
+    rationale: z.string().optional(),
+    status: decisionStatusEnum.optional(),
+  })
+  .strict();
