@@ -2,7 +2,7 @@ import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { dbStore } from '../db/store.js';
 import { eq } from 'drizzle-orm';
-import { authenticate, requireWorkspace } from '../middleware/auth.js';
+import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { askProductSchema } from '../schemas/index.js';
 import { Request, Response, NextFunction } from 'express';
 import {
@@ -801,6 +801,103 @@ export async function runSecurityIsolationTests(): Promise<TestResult[]> {
     expected: 'Aprovado na validação de schema',
     actual: validPromptCheck.success ? 'Aprovado com sucesso' : 'Falha na validação',
     passed: validPromptCheck.success,
+  });
+
+  // ==========================================
+  // SECTION 8: RBAC ENFORCEMENT & MEMBER MANAGEMENT
+  // ==========================================
+
+  // Helper to simulate requireRole middleware
+  function simulateRoleGuard(allowedRoles: any[], currentRole: string) {
+    let nextCalled = false;
+    let statusCode: number | undefined;
+    let responseBody: any;
+
+    const mockReq: Partial<Request> = {
+      workspaceRole: currentRole as any,
+    };
+
+    const mockRes: Partial<Response> = {
+      status(code: number) {
+        statusCode = code;
+        return this as Response;
+      },
+      json(body: any) {
+        responseBody = body;
+        return this as Response;
+      },
+    };
+
+    const mockNext: NextFunction = () => {
+      nextCalled = true;
+    };
+
+    const guard = requireRole(allowedRoles);
+    guard(mockReq as Request, mockRes as Response, mockNext);
+
+    return { status: statusCode, body: responseBody, nextCalled };
+  }
+
+  // 8.1 Viewer attempting mutation -> Blocked 403
+  const viewerGuardRes = simulateRoleGuard(['owner', 'admin', 'member'], 'viewer');
+  results.push({
+    name: '8.1 [RBAC] Usuário com papel "viewer" tentando operação mutativa -> Bloqueado 403',
+    expected: 'Status 403 FORBIDDEN (Next NOT called)',
+    actual: viewerGuardRes.status === 403 && !viewerGuardRes.nextCalled ? '403 FORBIDDEN (Bloqueado)' : `Inseguro (Status ${viewerGuardRes.status})`,
+    passed: viewerGuardRes.status === 403 && !viewerGuardRes.nextCalled,
+  });
+
+  // 8.2 Member / Admin / Owner permitted on mutative routes
+  const memberGuardRes = simulateRoleGuard(['owner', 'admin', 'member'], 'member');
+  const adminGuardRes = simulateRoleGuard(['owner', 'admin', 'member'], 'admin');
+  const ownerGuardRes = simulateRoleGuard(['owner', 'admin', 'member'], 'owner');
+  const mutativePermitted = memberGuardRes.nextCalled && adminGuardRes.nextCalled && ownerGuardRes.nextCalled;
+
+  results.push({
+    name: '8.2 [RBAC] Usuários com papéis "member", "admin" e "owner" autorizados em operações mutativas',
+    expected: 'Next() chamado para member, admin e owner',
+    actual: mutativePermitted ? 'Autorizado com sucesso' : 'Bloqueado indevidamente',
+    passed: mutativePermitted,
+  });
+
+  // 8.3 Last Owner demotion protection in store
+  let demoteLastOwnerBlocked = false;
+  try {
+    await dbStore.updateMemberRole(wsA.id, userA, 'member');
+  } catch (err: any) {
+    demoteLastOwnerBlocked = err instanceof BusinessRuleError && err.message.includes('único proprietário');
+  }
+
+  results.push({
+    name: '8.3 [MEMBER-RULES] Tentativa de rebaixar o único proprietário do workspace é bloqueada',
+    expected: 'BusinessRuleError com mensagem do único proprietário',
+    actual: demoteLastOwnerBlocked ? 'Bloqueado por regra de negócio' : 'Permitiu rebaixar último proprietário',
+    passed: demoteLastOwnerBlocked,
+  });
+
+  // 8.4 Last Owner removal protection in store
+  let removeLastOwnerBlocked = false;
+  try {
+    await dbStore.removeMember(wsA.id, userA);
+  } catch (err: any) {
+    removeLastOwnerBlocked = err instanceof BusinessRuleError && err.message.includes('único proprietário');
+  }
+
+  results.push({
+    name: '8.4 [MEMBER-RULES] Tentativa de remover o único proprietário do workspace é bloqueada',
+    expected: 'BusinessRuleError com mensagem do único proprietário',
+    actual: removeLastOwnerBlocked ? 'Bloqueado por regra de negócio' : 'Permitiu remover último proprietário',
+    passed: removeLastOwnerBlocked,
+  });
+
+  // 8.5 List workspace members
+  const membersList = await dbStore.listWorkspaceMembers(wsA.id);
+  const hasMembers = Array.isArray(membersList) && membersList.some((m) => m.user_id === userA && m.role === 'owner');
+  results.push({
+    name: '8.5 [MEMBER-LIST] Listagem de membros do workspace retorna integrantes e seus papéis',
+    expected: 'Lista contendo userA como owner',
+    actual: hasMembers ? 'Lista obtida com sucesso' : 'Falha na listagem',
+    passed: hasMembers,
   });
 
   // Cleanup test workspaces

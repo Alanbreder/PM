@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticate, requireWorkspace } from '../middleware/auth.js';
+import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import {
   createOpportunitySchema,
@@ -69,6 +69,7 @@ opportunityRouter.post(
   '/opportunities',
   authenticate,
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   validate({ body: createOpportunitySchema }),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
@@ -93,6 +94,7 @@ opportunityRouter.patch(
   authenticate,
   validate({ params: uuidParamSchema, body: updateOpportunitySchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const opportunityId = req.params.id;
@@ -118,6 +120,7 @@ opportunityRouter.delete(
   authenticate,
   validate({ params: uuidParamSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const opportunityId = req.params.id;
@@ -137,6 +140,7 @@ opportunityRouter.post(
   authenticate,
   validate({ params: uuidParamSchema, body: linkOpportunityProblemsSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const opportunityId = req.params.id;
@@ -162,6 +166,7 @@ opportunityRouter.delete(
   authenticate,
   validate({ params: unlinkParamsSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const { id: opportunityId, problemId } = req.params;

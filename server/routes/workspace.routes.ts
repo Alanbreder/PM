@@ -1,7 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { authenticate, requireWorkspace } from '../middleware/auth.js';
+import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { createWorkspaceSchema, addWorkspaceMemberSchema, uuidParamSchema } from '../schemas/index.js';
+import {
+  createWorkspaceSchema,
+  addWorkspaceMemberSchema,
+  updateWorkspaceMemberSchema,
+  uuidParamSchema,
+  userIdParamSchema,
+} from '../schemas/index.js';
 import { dbStore } from '../db/store.js';
 import { handleRouteError } from '../utils/errors.js';
 
@@ -67,23 +73,33 @@ workspaceRouter.get(
   }
 );
 
+// List workspace members
+workspaceRouter.get(
+  '/workspaces/:id/members',
+  authenticate,
+  validate({ params: uuidParamSchema }),
+  requireWorkspace,
+  async (req: Request, res: Response) => {
+    const workspaceId = req.params.id;
+
+    try {
+      const members = await dbStore.listWorkspaceMembers(workspaceId);
+      res.json({ members });
+    } catch (error: any) {
+      handleRouteError(res, error, 'listWorkspaceMembers');
+    }
+  }
+);
+
 // Add member to workspace (Owner/Admin only)
 workspaceRouter.post(
   '/workspaces/:id/members',
   authenticate,
   validate({ params: uuidParamSchema, body: addWorkspaceMemberSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin']),
   async (req: Request, res: Response) => {
     const callerRole = req.workspaceRole;
-    if (callerRole !== 'owner' && callerRole !== 'admin') {
-      res.status(403).json({
-        success: false,
-        error: 'FORBIDDEN',
-        message: 'Apenas proprietários e administradores podem convidar membros.',
-      });
-      return;
-    }
-
     const workspaceId = req.params.id;
     const { user_id, role } = req.body;
 
@@ -105,4 +121,56 @@ workspaceRouter.post(
     }
   }
 );
+
+// Update member role (Owner/Admin only)
+workspaceRouter.patch(
+  '/workspaces/:id/members/:userId',
+  authenticate,
+  validate({ params: userIdParamSchema, body: updateWorkspaceMemberSchema }),
+  requireWorkspace,
+  requireRole(['owner', 'admin']),
+  async (req: Request, res: Response) => {
+    const callerRole = req.workspaceRole;
+    const workspaceId = req.params.id;
+    const targetUserId = req.params.userId;
+    const { role: newRole } = req.body;
+
+    if (callerRole === 'admin' && newRole === 'owner') {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: 'Administradores não possuem permissão para atribuir o papel de proprietário.',
+      });
+      return;
+    }
+
+    try {
+      const member = await dbStore.updateMemberRole(workspaceId, targetUserId, newRole);
+      res.json({ member });
+    } catch (error: any) {
+      handleRouteError(res, error, 'updateMemberRole');
+    }
+  }
+);
+
+// Remove member from workspace (Owner/Admin only)
+workspaceRouter.delete(
+  '/workspaces/:id/members/:userId',
+  authenticate,
+  validate({ params: userIdParamSchema }),
+  requireWorkspace,
+  requireRole(['owner', 'admin']),
+  async (req: Request, res: Response) => {
+    const workspaceId = req.params.id;
+    const targetUserId = req.params.userId;
+
+    try {
+      await dbStore.removeMember(workspaceId, targetUserId);
+      res.json({ success: true, message: 'Membro removido com sucesso do workspace.' });
+    } catch (error: any) {
+      handleRouteError(res, error, 'removeMember');
+    }
+  }
+);
+
 

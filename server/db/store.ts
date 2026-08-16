@@ -13,6 +13,7 @@ import {
 import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
+import { BusinessRuleError } from '../utils/errors.js';
 
 class PostgresStore {
   // Sync user record from Firebase Auth to PostgreSQL
@@ -163,6 +164,149 @@ class PostgresStore {
     } catch (err) {
       console.error('Postgres addMember error:', err instanceof Error ? err.message : err);
       throw new Error('Falha ao adicionar membro ao workspace');
+    }
+  }
+
+  async listWorkspaceMembers(workspaceId: string): Promise<(WorkspaceMember & { user_email?: string; user_name?: string })[]> {
+    try {
+      const rows = await db
+        .select({
+          id: schema.workspaceMembers.id,
+          workspaceId: schema.workspaceMembers.workspaceId,
+          userId: schema.workspaceMembers.userId,
+          role: schema.workspaceMembers.role,
+          createdAt: schema.workspaceMembers.createdAt,
+          userEmail: schema.users.email,
+          userName: schema.users.name,
+        })
+        .from(schema.workspaceMembers)
+        .leftJoin(schema.users, eq(schema.workspaceMembers.userId, schema.users.uid))
+        .where(eq(schema.workspaceMembers.workspaceId, workspaceId));
+
+      return rows.map((r) => ({
+        id: r.id,
+        workspace_id: r.workspaceId,
+        user_id: r.userId,
+        role: r.role as WorkspaceRole,
+        created_at: r.createdAt.toISOString(),
+        user_email: r.userEmail || undefined,
+        user_name: r.userName || undefined,
+      }));
+    } catch (err) {
+      console.error('Postgres listWorkspaceMembers error:', err instanceof Error ? err.message : err);
+      throw new Error('Falha ao listar membros do workspace');
+    }
+  }
+
+  async updateMemberRole(workspaceId: string, targetUserId: string, newRole: WorkspaceRole): Promise<WorkspaceMember> {
+    try {
+      return await db.transaction(async (tx) => {
+        const existing = await tx
+          .select()
+          .from(schema.workspaceMembers)
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, targetUserId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length === 0) {
+          throw new BusinessRuleError('Membro não encontrado neste workspace.');
+        }
+
+        const currentRole = existing[0].role as WorkspaceRole;
+
+        if (currentRole === 'owner' && newRole !== 'owner') {
+          const owners = await tx
+            .select()
+            .from(schema.workspaceMembers)
+            .where(
+              and(
+                eq(schema.workspaceMembers.workspaceId, workspaceId),
+                eq(schema.workspaceMembers.role, 'owner')
+              )
+            );
+
+          if (owners.length <= 1) {
+            throw new BusinessRuleError('Não é possível rebaixar o único proprietário do workspace.');
+          }
+        }
+
+        const [updated] = await tx
+          .update(schema.workspaceMembers)
+          .set({ role: newRole })
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, targetUserId)
+            )
+          )
+          .returning();
+
+        return {
+          id: updated.id,
+          workspace_id: updated.workspaceId,
+          user_id: updated.userId,
+          role: updated.role as WorkspaceRole,
+          created_at: updated.createdAt.toISOString(),
+        };
+      });
+    } catch (err) {
+      if (err instanceof BusinessRuleError) throw err;
+      console.error('Postgres updateMemberRole error:', err instanceof Error ? err.message : err);
+      throw new Error('Falha ao atualizar papel do membro');
+    }
+  }
+
+  async removeMember(workspaceId: string, targetUserId: string): Promise<void> {
+    try {
+      await db.transaction(async (tx) => {
+        const existing = await tx
+          .select()
+          .from(schema.workspaceMembers)
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, targetUserId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length === 0) {
+          throw new BusinessRuleError('Membro não encontrado neste workspace.');
+        }
+
+        if (existing[0].role === 'owner') {
+          const owners = await tx
+            .select()
+            .from(schema.workspaceMembers)
+            .where(
+              and(
+                eq(schema.workspaceMembers.workspaceId, workspaceId),
+                eq(schema.workspaceMembers.role, 'owner')
+              )
+            );
+
+          if (owners.length <= 1) {
+            throw new BusinessRuleError('Não é possível remover o único proprietário do workspace.');
+          }
+        }
+
+        await tx
+          .delete(schema.workspaceMembers)
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, targetUserId)
+            )
+          );
+      });
+    } catch (err) {
+      if (err instanceof BusinessRuleError) throw err;
+      console.error('Postgres removeMember error:', err instanceof Error ? err.message : err);
+      throw new Error('Falha ao remover membro do workspace');
     }
   }
 

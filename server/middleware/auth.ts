@@ -137,3 +137,33 @@ export async function requireWorkspace(req: Request, res: Response, next: NextFu
     });
   }
 }
+
+/**
+ * Role-Based Access Control (RBAC) Middleware
+ * Verifies that the authenticated user's role in the current workspace is in allowedRoles.
+ * Rejects unauthorized users (e.g., 'viewer' trying to mutate data) with 403 Forbidden.
+ */
+export function requireRole(allowedRoles: WorkspaceRole[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.workspaceRole) {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: 'Acesso negado. Papel de usuário não verificado neste workspace.',
+      });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.workspaceRole)) {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: `Acesso negado. Esta operação requer permissão de [${allowedRoles.join(', ')}]. Seu papel atual é [${req.workspaceRole}].`,
+      });
+      return;
+    }
+
+    next();
+  };
+}
+

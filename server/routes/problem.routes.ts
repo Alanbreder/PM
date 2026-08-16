@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticate, requireWorkspace } from '../middleware/auth.js';
+import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import {
   createProblemSchema,
@@ -69,6 +69,7 @@ problemRouter.post(
   '/problems',
   authenticate,
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   validate({ body: createProblemSchema }),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
@@ -93,6 +94,7 @@ problemRouter.patch(
   authenticate,
   validate({ params: uuidParamSchema, body: updateProblemSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const problemId = req.params.id;
@@ -118,6 +120,7 @@ problemRouter.delete(
   authenticate,
   validate({ params: uuidParamSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const problemId = req.params.id;
@@ -137,6 +140,7 @@ problemRouter.post(
   authenticate,
   validate({ params: uuidParamSchema, body: linkProblemEvidencesSchema }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const problemId = req.params.id;
@@ -162,6 +166,7 @@ problemRouter.delete(
     }),
   }),
   requireWorkspace,
+  requireRole(['owner', 'admin', 'member']),
   async (req: Request, res: Response) => {
     const workspaceId = req.workspaceId!;
     const { id: problemId, evidenceId } = req.params;

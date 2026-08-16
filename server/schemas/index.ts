@@ -26,6 +26,15 @@ export const addWorkspaceMemberSchema = z.object({
   role: z.enum(['owner', 'admin', 'member', 'viewer']).default('member'),
 });
 
+export const updateWorkspaceMemberSchema = z.object({
+  role: z.enum(['owner', 'admin', 'member', 'viewer']),
+});
+
+export const userIdParamSchema = z.object({
+  id: uuidSchema,
+  userId: z.string().min(1, 'ID do usuário é obrigatório'),
+});
+
 // Research Schemas
 export const createResearchSchema = z.object({
   title: z.string().min(3, 'O título da pesquisa deve ter no mínimo 3 caracteres').max(200),
