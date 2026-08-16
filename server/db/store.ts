@@ -20,6 +20,9 @@ import {
   UpdateExperimentInput,
   Decision,
   CreateDecisionInput,
+  ProductInsight,
+  InsightStatus,
+  DiscoveryHealthMetrics,
 } from '../types/index.js';
 import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
@@ -1279,6 +1282,243 @@ class PostgresStore {
       console.error('Postgres deleteDecision error:', err instanceof Error ? err.message : err);
       throw new Error('Falha ao excluir decisão');
     }
+  }
+
+  // ETAPA 7: PRODUCT INSIGHTS & DISCOVERY HEALTH
+  async getInsights(workspaceId: string, status?: InsightStatus): Promise<ProductInsight[]> {
+    try {
+      const conditions = [eq(schema.productInsights.workspaceId, workspaceId)];
+      if (status) {
+        conditions.push(eq(schema.productInsights.status, status));
+      }
+
+      const rows = await db
+        .select()
+        .from(schema.productInsights)
+        .where(and(...conditions))
+        .orderBy(desc(schema.productInsights.createdAt));
+
+      return rows.map((r) => ({
+        id: r.id,
+        workspace_id: r.workspaceId,
+        type: r.type as any,
+        severity: r.severity as any,
+        title: r.title,
+        summary: r.summary,
+        facts: (r.facts as string[]) || [],
+        interpretation: r.interpretation,
+        uncertainties: (r.uncertainties as string[]) || [],
+        sources: (r.sources as any[]) || [],
+        status: r.status as any,
+        feedback_notes: r.feedbackNotes || undefined,
+        created_at: r.createdAt.toISOString(),
+        updated_at: r.updatedAt.toISOString(),
+      }));
+    } catch (err) {
+      console.error('Postgres getInsights error:', err instanceof Error ? err.message : err);
+      return [];
+    }
+  }
+
+  async saveInsights(workspaceId: string, insights: ProductInsight[]): Promise<ProductInsight[]> {
+    try {
+      // Remove old suggested insights for this workspace to avoid stale suggestions
+      await db
+        .delete(schema.productInsights)
+        .where(
+          and(
+            eq(schema.productInsights.workspaceId, workspaceId),
+            eq(schema.productInsights.status, 'suggested')
+          )
+        );
+
+      if (insights.length === 0) return [];
+
+      const valuesToInsert = insights.map((i) => ({
+        id: i.id,
+        workspaceId,
+        type: i.type,
+        severity: i.severity,
+        title: i.title,
+        summary: i.summary,
+        facts: i.facts,
+        interpretation: i.interpretation,
+        uncertainties: i.uncertainties,
+        sources: i.sources,
+        status: i.status || 'suggested',
+        feedbackNotes: i.feedback_notes,
+      }));
+
+      await db.insert(schema.productInsights).values(valuesToInsert);
+      return insights;
+    } catch (err) {
+      console.error('Postgres saveInsights error:', err instanceof Error ? err.message : err);
+      return insights;
+    }
+  }
+
+  async updateInsightStatus(
+    workspaceId: string,
+    insightId: string,
+    status: InsightStatus,
+    feedbackNotes?: string
+  ): Promise<ProductInsight> {
+    try {
+      const existingRows = await db
+        .select()
+        .from(schema.productInsights)
+        .where(
+          and(
+            eq(schema.productInsights.id, insightId),
+            eq(schema.productInsights.workspaceId, workspaceId)
+          )
+        )
+        .limit(1);
+
+      if (existingRows.length === 0) {
+        throw new BusinessRuleError('Insight não encontrado neste workspace.');
+      }
+
+      const updateData: any = {
+        status,
+        updatedAt: new Date(),
+      };
+      if (feedbackNotes !== undefined) {
+        updateData.feedbackNotes = feedbackNotes;
+      }
+
+      const [updated] = await db
+        .update(schema.productInsights)
+        .set(updateData)
+        .where(
+          and(
+            eq(schema.productInsights.id, insightId),
+            eq(schema.productInsights.workspaceId, workspaceId)
+          )
+        )
+        .returning();
+
+      return {
+        id: updated.id,
+        workspace_id: updated.workspaceId,
+        type: updated.type as any,
+        severity: updated.severity as any,
+        title: updated.title,
+        summary: updated.summary,
+        facts: (updated.facts as string[]) || [],
+        interpretation: updated.interpretation,
+        uncertainties: (updated.uncertainties as string[]) || [],
+        sources: (updated.sources as any[]) || [],
+        status: updated.status as any,
+        feedback_notes: updated.feedbackNotes || undefined,
+        created_at: updated.createdAt.toISOString(),
+        updated_at: updated.updatedAt.toISOString(),
+      };
+    } catch (err) {
+      if (err instanceof BusinessRuleError) throw err;
+      console.error('Postgres updateInsightStatus error:', err instanceof Error ? err.message : err);
+      throw new Error('Falha ao atualizar insight');
+    }
+  }
+
+  async getDiscoveryHealth(workspaceId: string): Promise<DiscoveryHealthMetrics> {
+    const [
+      researches,
+      evidences,
+      problems,
+      opportunities,
+      hypotheses,
+      experiments,
+      decisions,
+    ] = await Promise.all([
+      this.listResearches(workspaceId),
+      this.listEvidences(workspaceId),
+      this.listProblems(workspaceId),
+      this.listOpportunities(workspaceId),
+      this.listHypotheses(workspaceId),
+      this.listExperiments(workspaceId),
+      this.listDecisions(workspaceId),
+    ]);
+
+    const validatedProblems = problems.filter((p) => p.status === 'validated' || p.status === 'solved').length;
+    const testedHypotheses = hypotheses.filter((h) => h.status === 'validated' || h.status === 'invalidated').length;
+
+    const rToEvRatio = researches.length > 0 ? Number((evidences.length / researches.length).toFixed(2)) : 0;
+    const probValRatio = problems.length > 0 ? Number((validatedProblems / problems.length).toFixed(2)) : 0;
+    const hypTestRatio = hypotheses.length > 0 ? Number((testedHypotheses / hypotheses.length).toFixed(2)) : 0;
+    const expDecRatio = experiments.length > 0 ? Number((decisions.length / experiments.length).toFixed(2)) : 0;
+
+    let decisionsWithoutEvidenceCount = 0;
+    for (const dec of decisions) {
+      const exp = experiments.find((e) => e.id === dec.experiment_id);
+      if (!exp) {
+        decisionsWithoutEvidenceCount++;
+        continue;
+      }
+      const hyp = hypotheses.find((h) => h.id === exp.hypothesis_id);
+      if (!hyp) {
+        decisionsWithoutEvidenceCount++;
+        continue;
+      }
+      const opp = opportunities.find((o) => o.id === hyp.opportunity_id);
+      if (!opp) {
+        decisionsWithoutEvidenceCount++;
+        continue;
+      }
+      if (evidences.length === 0) {
+        decisionsWithoutEvidenceCount++;
+      }
+    }
+
+    const unvalidatedHypothesesCount = hypotheses.filter((h) => {
+      const exp = experiments.find((e) => e.hypothesis_id === h.id);
+      return !exp && (h.status === 'draft' || h.status === 'in_testing');
+    }).length;
+
+    const inconclusiveExperimentsCount = experiments.filter(
+      (e) => e.status === 'cancelled' || (e.status === 'completed' && (!e.results || e.results.trim().length < 10))
+    ).length;
+
+    const orphanedProblemsCount = problems.filter((p) => (p.evidence_count || 0) === 0).length;
+
+    let score = 100;
+    score -= decisionsWithoutEvidenceCount * 12;
+    score -= unvalidatedHypothesesCount * 6;
+    score -= inconclusiveExperimentsCount * 8;
+    score -= orphanedProblemsCount * 5;
+
+    if (researches.length > 0 && evidences.length > 0) score += 5;
+    if (validatedProblems > 0) score += 5;
+    if (decisions.length > 0) score += 5;
+
+    const healthScore = Math.max(0, Math.min(100, Math.round(score)));
+
+    return {
+      workspace_id: workspaceId,
+      health_score: healthScore,
+      totals: {
+        researches: researches.length,
+        evidences: evidences.length,
+        problems: problems.length,
+        opportunities: opportunities.length,
+        hypotheses: hypotheses.length,
+        experiments: experiments.length,
+        decisions: decisions.length,
+      },
+      funnel_conversion: {
+        researches_to_evidences_ratio: rToEvRatio,
+        problems_validated_ratio: probValRatio,
+        hypotheses_tested_ratio: hypTestRatio,
+        experiments_decided_ratio: expDecRatio,
+      },
+      risk_indicators: {
+        decisions_without_evidence_count: decisionsWithoutEvidenceCount,
+        unvalidated_hypotheses_count: unvalidatedHypothesesCount,
+        inconclusive_experiments_count: inconclusiveExperimentsCount,
+        orphaned_problems_count: orphanedProblemsCount,
+      },
+      last_evaluated_at: new Date().toISOString(),
+    };
   }
 }
 

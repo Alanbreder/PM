@@ -19,7 +19,23 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : [process.env.APP_URL || 'http://localhost:3000'].filter(Boolean);
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (such as same-origin, curl, server-to-server)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('CORS policy: origin not allowed'), false);
+      },
+      credentials: true,
+    })
+  );
   app.use(express.json());
 
   // Mount API Routes
@@ -33,7 +49,6 @@ async function startServer() {
   app.use('/api/hypotheses', hypothesisRouter);
   app.use('/api/experiments', experimentRouter);
   app.use('/api/decisions', decisionRouter);
-  app.use('/api/intelligence', intelligenceRouter);
   app.use('/api/workspaces/:workspaceId/intelligence', intelligenceRouter);
 
   // Vite middleware for dev or static server for production

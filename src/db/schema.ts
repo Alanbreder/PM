@@ -244,3 +244,25 @@ export const decisions = pgTable('decisions', {
     experimentIdx: index('idx_decisions_experiment').on(table.experimentId),
   };
 });
+
+// Product Insights table with multi-tenant isolation
+export const productInsights = pgTable('product_insights', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull(),
+  severity: varchar('severity', { length: 50 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  summary: text('summary').notNull(),
+  facts: jsonb('facts').$type<string[]>().notNull(),
+  interpretation: text('interpretation').notNull(),
+  uncertainties: jsonb('uncertainties').$type<string[]>().notNull(),
+  sources: jsonb('sources').$type<any[]>().notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('suggested'),
+  feedbackNotes: text('feedback_notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_product_insights_workspace').on(table.workspaceId),
+  };
+});

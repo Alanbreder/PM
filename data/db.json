@@ -9,6 +9,16 @@
       "uid": "usr_test",
       "email": "test@example.com",
       "name": "Test User"
+    },
+    {
+      "uid": "usr_admin_1",
+      "email": "admin@example.com",
+      "name": "Admin User"
+    },
+    {
+      "uid": "usr_viewer_1",
+      "email": "viewer@example.com",
+      "name": "Viewer User"
     }
   ],
   "workspaces": [
@@ -86,6 +96,42 @@
       "score": 85,
       "created_at": "2026-08-16T01:40:43.744Z",
       "updated_at": "2026-08-16T01:40:43.744Z"
+    },
+    {
+      "id": "prob_7ab51985-e254-4807-9758-c7c76373f1fb",
+      "workspace_id": "ws_tenant_A",
+      "title": "Problema de Onboarding",
+      "description": "Usuários desistem no passo 2",
+      "impact": "high",
+      "frequency": "frequent",
+      "status": "identified",
+      "score": 85,
+      "created_at": "2026-08-16T01:56:04.600Z",
+      "updated_at": "2026-08-16T01:56:04.600Z"
+    },
+    {
+      "id": "prob_c29b5ee0-40b8-4ace-9c3c-d763cc02d36f",
+      "workspace_id": "ws_tenant_A",
+      "title": "Problema de Onboarding",
+      "description": "Usuários desistem no passo 2",
+      "impact": "high",
+      "frequency": "frequent",
+      "status": "identified",
+      "score": 85,
+      "created_at": "2026-08-16T01:58:25.337Z",
+      "updated_at": "2026-08-16T01:58:25.337Z"
+    },
+    {
+      "id": "prob_cefeedb9-7048-4556-a188-2d2b83a29505",
+      "workspace_id": "ws_tenant_A",
+      "title": "Problema de Onboarding",
+      "description": "Usuários desistem no passo 2",
+      "impact": "high",
+      "frequency": "frequent",
+      "status": "identified",
+      "score": 85,
+      "created_at": "2026-08-16T01:58:52.399Z",
+      "updated_at": "2026-08-16T01:58:52.399Z"
     }
   ],
   "problemEvidences": [
@@ -109,6 +155,42 @@
       "status": "backlog",
       "created_at": "2026-08-16T01:40:43.744Z",
       "updated_at": "2026-08-16T01:40:43.744Z"
+    },
+    {
+      "id": "op_6c9be0b7-bdc8-4582-b057-27b1f4d816eb",
+      "workspace_id": "ws_tenant_A",
+      "title": "Oportunidade de Simplificação",
+      "description": "Reduzir campos do formulário",
+      "effort": "low",
+      "value": "high",
+      "score": 80,
+      "status": "backlog",
+      "created_at": "2026-08-16T01:56:04.601Z",
+      "updated_at": "2026-08-16T01:56:04.601Z"
+    },
+    {
+      "id": "op_a76bcb10-86e5-4a2a-878a-598a40ac361f",
+      "workspace_id": "ws_tenant_A",
+      "title": "Oportunidade de Simplificação",
+      "description": "Reduzir campos do formulário",
+      "effort": "low",
+      "value": "high",
+      "score": 80,
+      "status": "backlog",
+      "created_at": "2026-08-16T01:58:25.338Z",
+      "updated_at": "2026-08-16T01:58:25.338Z"
+    },
+    {
+      "id": "op_ef7d6334-b124-4758-b72f-a6a0cb877b62",
+      "workspace_id": "ws_tenant_A",
+      "title": "Oportunidade de Simplificação",
+      "description": "Reduzir campos do formulário",
+      "effort": "low",
+      "value": "high",
+      "score": 80,
+      "status": "backlog",
+      "created_at": "2026-08-16T01:58:52.400Z",
+      "updated_at": "2026-08-16T01:58:52.400Z"
     }
   ],
   "hypotheses": [
@@ -123,6 +205,41 @@
       "status": "testing",
       "created_at": "2026-08-16T01:40:43.744Z",
       "updated_at": "2026-08-16T01:40:43.744Z"
+    },
+    {
+      "id": "hyp_548cc6b0-aed0-43f6-a96c-9c906b32eccb",
+      "workspace_id": "ws_tenant_A",
+      "opportunity_id": "op_6c9be0b7-bdc8-4582-b057-27b1f4d816eb",
+      "title": "Hipótese de Menos Campos",
+      "metrics_to_validate": "Taxa de conversão",
+      "confidence_score": 3,
+      "status": "draft",
+      "created_at": "2026-08-16T01:56:04.601Z",
+      "updated_at": "2026-08-16T01:56:04.601Z"
+    },
+    {
+      "id": "hyp_8e67dd1e-80b7-4752-afd0-80689037e4a1",
+      "workspace_id": "ws_tenant_A",
+      "opportunity_id": "op_a76bcb10-86e5-4a2a-878a-598a40ac361f",
+      "title": "Hipótese de Menos Campos",
+      "statement": "Se removermos 3 campos, a conversão sobe 15%",
+      "metrics_to_validate": "Taxa de conversão",
+      "confidence_score": 3,
+      "status": "draft",
+      "created_at": "2026-08-16T01:58:25.338Z",
+      "updated_at": "2026-08-16T01:58:25.338Z"
+    },
+    {
+      "id": "hyp_c852faa3-c87c-4ffb-9f30-8b8c31ad3dbc",
+      "workspace_id": "ws_tenant_A",
+      "opportunity_id": "op_ef7d6334-b124-4758-b72f-a6a0cb877b62",
+      "title": "Hipótese de Menos Campos",
+      "statement": "Se removermos 3 campos, a conversão sobe 15%",
+      "metrics_to_validate": "Taxa de conversão",
+      "confidence_score": 3,
+      "status": "draft",
+      "created_at": "2026-08-16T01:58:52.400Z",
+      "updated_at": "2026-08-16T01:58:52.400Z"
     }
   ],
   "experiments": [
@@ -139,6 +256,36 @@
       "learnings": "Feedback imediato reduz ansiedade do usuário e elimina chamados ao suporte técnico.",
       "created_at": "2026-08-16T01:40:43.744Z",
       "updated_at": "2026-08-16T01:40:43.744Z"
+    },
+    {
+      "id": "exp_4d146312-4336-4e7f-ab4e-cec36cd68bc5",
+      "workspace_id": "ws_tenant_A",
+      "hypothesis_id": "hyp_548cc6b0-aed0-43f6-a96c-9c906b32eccb",
+      "title": "Teste A/B do Formulário",
+      "description": "Comparar 3 campos vs 6 campos",
+      "status": "draft",
+      "created_at": "2026-08-16T01:56:04.601Z",
+      "updated_at": "2026-08-16T01:56:04.601Z"
+    },
+    {
+      "id": "exp_809fc9f0-1e5d-4eb2-98e1-df37f959d429",
+      "workspace_id": "ws_tenant_A",
+      "hypothesis_id": "hyp_8e67dd1e-80b7-4752-afd0-80689037e4a1",
+      "title": "Teste A/B do Formulário",
+      "description": "Comparar 3 campos vs 6 campos",
+      "status": "draft",
+      "created_at": "2026-08-16T01:58:25.339Z",
+      "updated_at": "2026-08-16T01:58:25.339Z"
+    },
+    {
+      "id": "exp_82def335-9d5f-45d0-a678-237c10867ba8",
+      "workspace_id": "ws_tenant_A",
+      "hypothesis_id": "hyp_c852faa3-c87c-4ffb-9f30-8b8c31ad3dbc",
+      "title": "Teste A/B do Formulário",
+      "description": "Comparar 3 campos vs 6 campos",
+      "status": "draft",
+      "created_at": "2026-08-16T01:58:52.400Z",
+      "updated_at": "2026-08-16T01:58:52.400Z"
     }
   ],
   "decisions": [
@@ -153,6 +300,39 @@
       "status": "approved",
       "created_at": "2026-08-16T01:40:43.744Z",
       "updated_at": "2026-08-16T01:40:43.744Z"
+    },
+    {
+      "id": "dec_24d9f068-c8aa-463b-b6cf-bddecedaa066",
+      "workspace_id": "ws_tenant_A",
+      "experiment_id": "exp_4d146312-4336-4e7f-ab4e-cec36cd68bc5",
+      "title": "Decisão Estratégica do Onboarding",
+      "decision": "Aprovar formulário simplificado",
+      "rationale": "Premissa suportada por dados preliminares",
+      "status": "pending",
+      "created_at": "2026-08-16T01:56:04.601Z",
+      "updated_at": "2026-08-16T01:56:04.601Z"
+    },
+    {
+      "id": "dec_2ca67699-06f4-4192-9229-d8ae13aa870a",
+      "workspace_id": "ws_tenant_A",
+      "experiment_id": "exp_809fc9f0-1e5d-4eb2-98e1-df37f959d429",
+      "title": "Decisão Estratégica do Onboarding",
+      "decision": "Aprovar formulário simplificado",
+      "rationale": "Premissa suportada por dados preliminares",
+      "status": "pending",
+      "created_at": "2026-08-16T01:58:25.339Z",
+      "updated_at": "2026-08-16T01:58:25.339Z"
+    },
+    {
+      "id": "dec_88c665c1-b652-4e48-bca2-b8e10ae84f9a",
+      "workspace_id": "ws_tenant_A",
+      "experiment_id": "exp_82def335-9d5f-45d0-a678-237c10867ba8",
+      "title": "Decisão Estratégica do Onboarding",
+      "decision": "Aprovar formulário simplificado",
+      "rationale": "Premissa suportada por dados preliminares",
+      "status": "pending",
+      "created_at": "2026-08-16T01:58:52.400Z",
+      "updated_at": "2026-08-16T01:58:52.400Z"
     }
   ],
   "insights": [
@@ -313,6 +493,282 @@
       "status": "suggested",
       "created_at": "2026-08-16T01:48:11.024Z",
       "updated_at": "2026-08-16T01:48:11.024Z"
+    },
+    {
+      "id": "ins_1786845373893_0_f4bpn",
+      "workspace_id": "ws_tenant_A",
+      "type": "weak_evidence_decision",
+      "severity": "critical",
+      "title": "Decisão tomada sem suporte de evidências registradas",
+      "summary": "A decisão de aprovar o formulário simplificado foi formalizada sem pesquisas, evidências ou resultados de experimentos concluídos no workspace.",
+      "facts": [
+        "A decisão dec_24d9f068-c8aa-463b-b6cf-bddecedaa066 aprova o formulário simplificado mencionando 'dados preliminares'",
+        "A lista de pesquisas (researches) está vazia",
+        "A lista de evidências (evidences) está vazia",
+        "O experimento exp_4d146312-4336-4e7f-ab4e-cec36cd68bc5 está em status 'draft' e com campo 'results' vazio"
+      ],
+      "interpretation": "Existe um risco elevado de viés de confirmação ou execução prematura, visto que a justificativa da decisão aponta dados preliminares não documentados e o experimento planejado não foi executado.",
+      "uncertainties": [
+        "Não está claro se existem dados qualitativos ou quantitativos coletados fora da ferramenta que sustentem a decisão."
+      ],
+      "sources": [
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_24d9f068-c8aa-463b-b6cf-bddecedaa066",
+          "title": "Decisão Estratégica do Onboarding"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_4d146312-4336-4e7f-ab4e-cec36cd68bc5",
+          "title": "Teste A/B do Formulário"
+        }
+      ],
+      "status": "accepted",
+      "created_at": "2026-08-16T01:56:13.893Z",
+      "updated_at": "2026-08-16T01:56:18.038Z",
+      "feedback_notes": "Aprovado pelo PM para próxima sprint"
+    },
+    {
+      "id": "ins_1786845539193_0_rmkua",
+      "workspace_id": "ws_tenant_A",
+      "type": "weak_evidence_decision",
+      "severity": "critical",
+      "title": "Decisões aprovadas sem suporte de evidências e pesquisas",
+      "summary": "Decisões estratégicas para aprovar o formulário simplificado foram registradas alegando dados preliminares, porém não há nenhuma pesquisa ou evidência cadastrada no workspace.",
+      "facts": [
+        "A lista de pesquisas (researches) está vazia.",
+        "A lista de evidências (evidences) está vazia.",
+        "Três decisões 'Decisão Estratégica do Onboarding' foram registradas com a justificativa 'Premissa suportada por dados preliminares'."
+      ],
+      "interpretation": "A tomada de decisão está ocorrendo de forma prematura ou desvinculada de dados empíricos no repositório, elevando o risco de lançar alterações sem validação real com usuários.",
+      "uncertainties": [
+        "Não se sabe se os dados preliminares citados existem em ferramentas externas e não foram inseridos no workspace.",
+        "Não há clareza de qual métrica suportou a justificativa da decisão."
+      ],
+      "sources": [
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_88c665c1-b652-4e48-bca2-b8e10ae84f9a",
+          "title": "Decisão Estratégica do Onboarding"
+        },
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_2ca67699-06f4-4192-9229-d8ae13aa870a",
+          "title": "Decisão Estratégica do Onboarding"
+        },
+        {
+          "entity_type": "decision",
+          "entity_id": "dec_24d9f068-c8aa-463b-b6cf-bddecedaa066",
+          "title": "Decisão Estratégica do Onboarding"
+        }
+      ],
+      "status": "accepted",
+      "created_at": "2026-08-16T01:58:59.193Z",
+      "updated_at": "2026-08-16T01:59:02.166Z",
+      "feedback_notes": "Aprovado pelo PM para próxima sprint"
+    },
+    {
+      "id": "ins_1786845539193_1_hm5fe",
+      "workspace_id": "ws_tenant_A",
+      "type": "unvalidated_hypothesis",
+      "severity": "warning",
+      "title": "Hipóteses e experimentos estagnados em estado de rascunho",
+      "summary": "As hipóteses e experimentos relacionados à simplificação do formulário estão em rascunho e sem resultados, apesar da tomada de decisão já existente.",
+      "facts": [
+        "Todas as 3 hipóteses 'Hipótese de Menos Campos' estão com status 'draft'.",
+        "Todos os 3 experimentos 'Teste A/B do Formulário' estão com status 'draft' e campo 'results' vazio."
+      ],
+      "interpretation": "O ciclo de discovery foi contornado ou invertido, onde a implementação e aprovação avançaram sem a execução formal dos experimentos planejados.",
+      "uncertainties": [
+        "Os experimentos foram executados fora do sistema ou ainda serão iniciados?",
+        "Existe critério de sucesso definido para os testes A/B?"
+      ],
+      "sources": [
+        {
+          "entity_type": "hypothesis",
+          "entity_id": "hyp_c852faa3-c87c-4ffb-9f30-8b8c31ad3dbc",
+          "title": "Hipótese de Menos Campos"
+        },
+        {
+          "entity_type": "hypothesis",
+          "entity_id": "hyp_8e67dd1e-80b7-4752-afd0-80689037e4a1",
+          "title": "Hipótese de Menos Campos"
+        },
+        {
+          "entity_type": "hypothesis",
+          "entity_id": "hyp_548cc6b0-aed0-43f6-a96c-9c906b32eccb",
+          "title": "Hipótese de Menos Campos"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_82def335-9d5f-45d0-a678-237c10867ba8",
+          "title": "Teste A/B do Formulário"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_809fc9f0-1e5d-4eb2-98e1-df37f959d429",
+          "title": "Teste A/B do Formulário"
+        },
+        {
+          "entity_type": "experiment",
+          "entity_id": "exp_4d146312-4336-4e7f-ab4e-cec36cd68bc5",
+          "title": "Teste A/B do Formulário"
+        }
+      ],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:58:59.193Z",
+      "updated_at": "2026-08-16T01:58:59.193Z"
+    },
+    {
+      "id": "ins_1786845539194_2_jtil7",
+      "workspace_id": "ws_tenant_A",
+      "type": "recurring_pattern",
+      "severity": "warning",
+      "title": "Duplicação excessiva de itens idênticos em múltiplos estágios",
+      "summary": "Foram identificadas triplicações exatas de problemas, oportunidades, hipóteses, experimentos e decisões no workspace.",
+      "facts": [
+        "Existem 3 problemas idênticos intitulados 'Problema de Onboarding' com status 'identified' e impacto 'high'.",
+        "Existem 3 oportunidades idênticas 'Oportunidade de Simplificação' com status 'backlog', esforço 'low' e valor 'high'.",
+        "Existem 3 hipóteses, 3 experimentos e 3 decisões com dados e títulos rigorosamente repetidos."
+      ],
+      "interpretation": "Há fragmentação ou erro de sincronização/gestão de dados no workspace, gerando ruído e dificultando o acompanhamento claro do pipeline de discovery.",
+      "uncertainties": [
+        "As duplicatas foram criadas por erro operacional ou representam iniciativas de diferentes squads?",
+        "Qual entidade deve ser mantida como a versão canônica?"
+      ],
+      "sources": [
+        {
+          "entity_type": "problem",
+          "entity_id": "prob_cefeedb9-7048-4556-a188-2d2b83a29505",
+          "title": "Problema de Onboarding"
+        },
+        {
+          "entity_type": "problem",
+          "entity_id": "prob_c29b5ee0-40b8-4ace-9c3c-d763cc02d36f",
+          "title": "Problema de Onboarding"
+        },
+        {
+          "entity_type": "problem",
+          "entity_id": "prob_7ab51985-e254-4807-9758-c7c76373f1fb",
+          "title": "Problema de Onboarding"
+        },
+        {
+          "entity_type": "opportunity",
+          "entity_id": "op_ef7d6334-b124-4758-b72f-a6a0cb877b62",
+          "title": "Oportunidade de Simplificação"
+        },
+        {
+          "entity_type": "opportunity",
+          "entity_id": "op_a76bcb10-86e5-4a2a-878a-598a40ac361f",
+          "title": "Oportunidade de Simplificação"
+        },
+        {
+          "entity_type": "opportunity",
+          "entity_id": "op_6c9be0b7-bdc8-4582-b057-27b1f4d816eb",
+          "title": "Oportunidade de Simplificação"
+        }
+      ],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:58:59.193Z",
+      "updated_at": "2026-08-16T01:58:59.193Z"
+    },
+    {
+      "id": "ins_1786845539194_3_uv7q4",
+      "workspace_id": "ws_tenant_A",
+      "type": "gap",
+      "severity": "critical",
+      "title": "Lacuna estrutural na base de pesquisa e descoberta contínua",
+      "summary": "O workspace carece totalmente de registros de pesquisas e evidências, impossibilitando a rastreabilidade do processo de discovery.",
+      "facts": [
+        "Array 'researches' com tamanho 0.",
+        "Array 'evidences' com tamanho 0.",
+        "Problemas foram classificados como impacto 'high' sem evidências registradas."
+      ],
+      "interpretation": "A classificação de alto impacto dos problemas e o dimensionamento de oportunidades foram presumidos sem base empírica documentada no fluxo de trabalho.",
+      "uncertainties": [
+        "Existem pesquisas qualitativas ou quantitativas arquivadas em outro repositório?",
+        "Qual o real volume de usuários afetados pelo problema de onboarding?"
+      ],
+      "sources": [
+        {
+          "entity_type": "problem",
+          "entity_id": "prob_cefeedb9-7048-4556-a188-2d2b83a29505",
+          "title": "Problema de Onboarding"
+        },
+        {
+          "entity_type": "opportunity",
+          "entity_id": "op_ef7d6334-b124-4758-b72f-a6a0cb877b62",
+          "title": "Oportunidade de Simplificação"
+        }
+      ],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:58:59.193Z",
+      "updated_at": "2026-08-16T01:58:59.193Z"
+    },
+    {
+      "id": "ins_1786845542164_0_gtazt",
+      "workspace_id": "ws_empty_test_999",
+      "type": "gap",
+      "severity": "critical",
+      "title": "Ausência total de dados e pesquisas no repositório de Discovery",
+      "summary": "O workspace não contém nenhuma pesquisa ou evidência registrada, inviabilizando a tomada de decisão baseada em dados.",
+      "facts": [
+        "A lista de pesquisas ('researches') está vazia.",
+        "A lista de evidências ('evidences') está vazia."
+      ],
+      "interpretation": "O processo de discovery ainda não foi iniciado formalmente ou os dados coletados não foram documentados na plataforma, aumentando o risco de decisões baseadas em suposições.",
+      "uncertainties": [
+        "Não se sabe se existem pesquisas conduzidas externamente que ainda não foram migradas.",
+        "Não está claro qual é o estágio atual do produto ou objetivo de negócio.",
+        "Nenhuma fonte de dados do workspace vinculada diretamente a este insight."
+      ],
+      "sources": [],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:59:02.164Z",
+      "updated_at": "2026-08-16T01:59:02.164Z"
+    },
+    {
+      "id": "ins_1786845542164_1_mau0d",
+      "workspace_id": "ws_empty_test_999",
+      "type": "gap",
+      "severity": "warning",
+      "title": "Inexistência de problemas e oportunidades mapeados",
+      "summary": "Não há problemas de usuários ou oportunidades de negócio cadastrados no workspace.",
+      "facts": [
+        "A lista de problemas ('problems') está vazia.",
+        "A lista de oportunidades ('opportunities') está vazia."
+      ],
+      "interpretation": "Sem o mapeamento explícito de dores e oportunidades, o time corre o risco de focar diretamente em soluções sem clareza do problema raiz a ser resolvido.",
+      "uncertainties": [
+        "Não há visibilidade sobre prioridades estratégicas da organização no momento.",
+        "Nenhuma fonte de dados do workspace vinculada diretamente a este insight."
+      ],
+      "sources": [],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:59:02.164Z",
+      "updated_at": "2026-08-16T01:59:02.164Z"
+    },
+    {
+      "id": "ins_1786845542164_2_ix0sk",
+      "workspace_id": "ws_empty_test_999",
+      "type": "gap",
+      "severity": "info",
+      "title": "Falta de hipóteses, experimentos e decisões documentadas",
+      "summary": "Não há registros do ciclo de validação contínua (hipóteses, experimentos e decisões tomadas).",
+      "facts": [
+        "A lista de hipóteses ('hypotheses') está vazia.",
+        "A lista de experimentos ('experiments') está vazia.",
+        "A lista de decisões ('decisions') está vazia."
+      ],
+      "interpretation": "O ciclo de experimentação e aprendizado contínuo precisa ser estruturado desde o início para manter a rastreabilidade das decisões de produto.",
+      "uncertainties": [
+        "Não é possível determinar se já foram realizados testes prévios fora do repositório.",
+        "Nenhuma fonte de dados do workspace vinculada diretamente a este insight."
+      ],
+      "sources": [],
+      "status": "suggested",
+      "created_at": "2026-08-16T01:59:02.164Z",
+      "updated_at": "2026-08-16T01:59:02.164Z"
     }
   ]
 }

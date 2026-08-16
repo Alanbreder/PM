@@ -19,27 +19,20 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
-  // Check if dev/demo mock auth is enabled or in non-production
-  const isDevMockAllowed =
-    process.env.ALLOW_DEV_MOCK_AUTH === 'true' ||
+  // Mock auth is ONLY allowed when ALLOW_DEV_MOCK_AUTH === 'true' AND NODE_ENV !== 'production'
+  const isMockAuthAllowed =
+    process.env.ALLOW_DEV_MOCK_AUTH === 'true' &&
     process.env.NODE_ENV !== 'production';
 
-  if (isDevMockAllowed && req.headers['x-test-user-id']) {
+  if (isMockAuthAllowed && req.headers['x-test-user-id']) {
     req.user = {
       uid: String(req.headers['x-test-user-id']),
-      email: String(req.headers['x-test-user-email'] || 'demo@productos.io'),
+      email: String(req.headers['x-test-user-email'] || 'test@example.com'),
     };
     return next();
   }
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    if (isDevMockAllowed) {
-      req.user = {
-        uid: 'usr_demo_admin',
-        email: 'demo@productos.io',
-      };
-      return next();
-    }
     res.status(401).json({
       error: 'UNAUTHORIZED',
       message: 'Token de autenticação não fornecido',
@@ -49,7 +42,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
   const token = authHeader.split('Bearer ')[1];
 
-  if (isDevMockAllowed && (token === 'demo-token' || !token)) {
+  if (isMockAuthAllowed && token === 'demo-token') {
     req.user = {
       uid: String(req.headers['x-test-user-id'] || 'usr_demo_admin'),
       email: String(req.headers['x-test-user-email'] || 'demo@productos.io'),
@@ -65,13 +58,6 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     };
     next();
   } catch (error) {
-    if (isDevMockAllowed) {
-      req.user = {
-        uid: String(req.headers['x-test-user-id'] || 'usr_demo_admin'),
-        email: String(req.headers['x-test-user-email'] || 'demo@productos.io'),
-      };
-      return next();
-    }
     res.status(401).json({
       error: 'UNAUTHORIZED',
       message: 'Token de autenticação inválido ou expirado',

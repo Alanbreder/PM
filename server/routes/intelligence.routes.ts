@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
+import { aiRateLimiter } from '../middleware/rate_limit.js';
 import { validate } from '../middleware/validate.js';
 import { intelligenceService } from '../services/intelligence.service.ts';
 import { updateInsightStatusSchema } from '../schemas/intelligence.schema.js';
 import { handleRouteError } from '../utils/errors.js';
 import { InsightStatus } from '../types/index.js';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.use(authenticate);
 router.use(requireWorkspace);
@@ -36,6 +37,7 @@ router.get('/insights', async (req: Request, res: Response) => {
 router.post(
   '/generate',
   requireRole(['owner', 'admin', 'member']),
+  aiRateLimiter,
   async (req: Request, res: Response) => {
     try {
       const insights = await intelligenceService.generateInsights(req.workspaceId!);
