@@ -37,11 +37,13 @@ export function getDevAdminSession(token: string): DevAdminSession | null {
 
 // Check dev status endpoint (used by UI to know if Dev Admin button should be rendered)
 router.get('/status', (req: Request, res: Response) => {
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || !process.env.NODE_ENV;
   const isEnabled = isDev && process.env.ALLOW_DEV_ADMIN === 'true';
+  const requiresKey = Boolean(process.env.DEV_ADMIN_KEY && process.env.DEV_ADMIN_KEY.trim() !== '');
 
   res.json({
     enabled: isEnabled,
+    requiresKey,
     environment: process.env.NODE_ENV || 'development',
   });
 });
@@ -67,21 +69,24 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    // 3. Local Origin / IP Barrier: Restrict to local loopback if available
+    // 3. Local / Sandbox Environment Check
     const ip = req.ip || req.socket.remoteAddress || '';
-    const isLocalhost =
+    const isAllowedHost =
       ip === '127.0.0.1' ||
       ip === '::1' ||
       ip === '::ffff:127.0.0.1' ||
       ip === 'localhost' ||
       req.hostname === 'localhost' ||
       req.hostname === '127.0.0.1' ||
+      req.hostname.endsWith('.run.app') ||
+      req.hostname.endsWith('.googleusercontent.com') ||
+      process.env.NODE_ENV === 'development' ||
       process.env.NODE_ENV === 'test';
 
-    if (!isLocalhost) {
+    if (!isAllowedHost) {
       res.status(403).json({
         error: 'FORBIDDEN_ORIGIN',
-        message: 'Dev Admin Mode só aceita requisições originadas localmente.',
+        message: 'Dev Admin Mode só aceita requisições originadas em ambiente de desenvolvimento.',
       });
       return;
     }

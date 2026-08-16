@@ -32,6 +32,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
   const [devAdminLoading, setDevAdminLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
   const [devAdminAvailable, setDevAdminAvailable] = useState<boolean>(false);
+  const [devAdminRequiresKey, setDevAdminRequiresKey] = useState<boolean>(false);
+  const [devAdminKeyInput, setDevAdminKeyInput] = useState<string>('');
 
   // Check if Dev Admin is available on backend
   useEffect(() => {
@@ -41,6 +43,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
       .then((data) => {
         if (isMounted && data && data.enabled === true) {
           setDevAdminAvailable(true);
+          if (data.requiresKey) {
+            setDevAdminRequiresKey(true);
+          }
         }
       })
       .catch(() => {
@@ -54,6 +59,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
   }, []);
 
   const handleDevAdminLogin = async () => {
+    if (devAdminRequiresKey && !devAdminKeyInput.trim()) {
+      setErrorMsg('Informe a Chave de Desenvolvimento (DEV_ADMIN_KEY) para continuar.');
+      return;
+    }
+
     setDevAdminLoading(true);
     setErrorMsg(null);
 
@@ -62,7 +72,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-dev-admin-key': devAdminKeyInput.trim(),
         },
+        body: JSON.stringify({
+          dev_admin_key: devAdminKeyInput.trim(),
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -187,6 +201,19 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
             <p className="text-[11px] text-slate-300 leading-relaxed">
               Acesso administrativo local habilitado via variável de ambiente (<code className="text-amber-300 font-mono">ALLOW_DEV_ADMIN=true</code>).
             </p>
+            {devAdminRequiresKey && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-amber-300">Chave de Acesso (DEV_ADMIN_KEY)</label>
+                <input
+                  id="input-dev-admin-key"
+                  type="password"
+                  value={devAdminKeyInput}
+                  onChange={(e) => setDevAdminKeyInput(e.target.value)}
+                  placeholder="Insira a chave DEV_ADMIN_KEY"
+                  className="w-full bg-slate-950 border border-amber-500/30 rounded px-2.5 py-1.5 text-xs text-amber-200 placeholder:text-amber-500/50 focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+            )}
             <button
               id="btn-dev-admin-login"
               type="button"

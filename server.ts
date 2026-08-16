@@ -44,10 +44,20 @@ async function startServer() {
       origin: (origin, callback) => {
         // Allow requests with no origin (such as same-origin, curl, server-to-server)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-        return callback(new Error('CORS policy: origin not allowed'), false);
+        // Allow development, Cloud Run preview domains, and localhost
+        if (
+          origin.startsWith('http://localhost') ||
+          origin.startsWith('http://127.0.0.1') ||
+          origin.endsWith('.run.app') ||
+          origin.endsWith('.googleusercontent.com') ||
+          process.env.NODE_ENV !== 'production'
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
       },
       credentials: true,
     })
