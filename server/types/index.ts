@@ -270,3 +270,69 @@ export interface DiscoveryHealthMetrics {
   last_evaluated_at: string;
 }
 
+// ETAPA 8: ROADMAP & STRATEGIC INITIATIVES
+export type RoadmapTimeframe = 'now' | 'next' | 'later';
+export type RoadmapStatus = 'planned' | 'in_progress' | 'delivered' | 'blocked' | 'deferred';
+export type RoadmapPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface RoadmapItem {
+  id: string;
+  workspace_id: string;
+  title: string;
+  description?: string;
+  timeframe: RoadmapTimeframe;
+  status: RoadmapStatus;
+  priority: RoadmapPriority;
+  target_quarter?: string;
+  decision_id?: string;
+  opportunity_id?: string;
+  metrics_target?: string;
+  progress: number;
+  owner_name?: string;
+  created_at: string;
+  updated_at: string;
+  // Computed / joined helpers
+  decision_title?: string;
+  opportunity_title?: string;
+}
+
+export interface CreateRoadmapItemInput {
+  title: string;
+  description?: string;
+  timeframe?: RoadmapTimeframe;
+  status?: RoadmapStatus;
+  priority?: RoadmapPriority;
+  target_quarter?: string;
+  decision_id?: string;
+  opportunity_id?: string;
+  metrics_target?: string;
+  progress?: number;
+  owner_name?: string;
+}
+
+export interface UpdateRoadmapItemInput {
+  title?: string;
+  description?: string;
+  timeframe?: RoadmapTimeframe;
+  status?: RoadmapStatus;
+  priority?: RoadmapPriority;
+  target_quarter?: string;
+  decision_id?: string | null;
+  opportunity_id?: string | null;
+  metrics_target?: string;
+  progress?: number;
+  owner_name?: string;
+}
+
+export interface RoadmapLineage {
+  roadmap_item: RoadmapItem;
+  decision?: Decision;
+  experiment?: Experiment;
+  hypothesis?: Hypothesis;
+  opportunity?: Opportunity;
+  problems: Problem[];
+  evidences: Evidence[];
+  researches: Research[];
+}
+
+

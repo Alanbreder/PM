@@ -10,7 +10,9 @@ import { HypothesisView } from './components/HypothesisView';
 import { ExperimentView } from './components/ExperimentView';
 import { DecisionView } from './components/DecisionView';
 import { IntelligenceView } from './components/IntelligenceView';
+import { RoadmapView } from './components/RoadmapView';
 import { WorkspaceModal } from './components/WorkspaceModal';
+
 import { AuthView } from './components/AuthView';
 
 export default function App() {
@@ -151,7 +153,9 @@ export default function App() {
                 onNavigateTab={(tab) => setActiveTab(tab)}
               />
             )}
+            {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} />}
           </>
+
         ) : (
           <div className="text-center py-20 text-slate-400 text-sm">
             Nenhum workspace selecionado. Crie ou selecione um workspace para iniciar.

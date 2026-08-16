@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../../src/lib/firebase-admin.js';
 import { dbStore } from '../db/store.js';
 import { WorkspaceRole } from '../types/index.js';
+import { verifyLocalToken } from '../utils/jwt.js';
 
 declare global {
   namespace Express {
@@ -20,7 +21,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   const authHeader = req.headers.authorization;
 
   // Mock auth is ONLY allowed when NODE_ENV === 'test' AND ALLOW_DEV_MOCK_AUTH === 'true'
-  // In development, staging, and production, real Firebase Bearer JWT is strictly required.
+  // In development, staging, and production, real Firebase Bearer JWT or verified local token is strictly required.
   const isMockAuthAllowed =
     process.env.NODE_ENV === 'test' &&
     process.env.ALLOW_DEV_MOCK_AUTH === 'true';
@@ -51,6 +52,17 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     return next();
   }
 
+  // 1. Try local verified cryptographic token
+  const localPayload = verifyLocalToken(token);
+  if (localPayload) {
+    req.user = {
+      uid: localPayload.uid,
+      email: localPayload.email || '',
+    };
+    return next();
+  }
+
+  // 2. Try Firebase ID Token verification
   try {
     const decodedToken = await adminAuth.verifyIdToken(token);
     req.user = {

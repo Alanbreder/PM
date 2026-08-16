@@ -23,7 +23,12 @@ import {
   ProductInsight,
   InsightStatus,
   DiscoveryHealthMetrics,
+  RoadmapItem,
+  CreateRoadmapItemInput,
+  UpdateRoadmapItemInput,
+  RoadmapLineage,
 } from '../types/index.js';
+
 import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
@@ -888,7 +893,36 @@ class PostgresStore {
     }
   }
 
+  async getHypothesisById(workspaceId: string, hypothesisId: string): Promise<Hypothesis | null> {
+    try {
+      const rows = await db
+        .select()
+        .from(schema.hypotheses)
+        .where(and(eq(schema.hypotheses.id, hypothesisId), eq(schema.hypotheses.workspaceId, workspaceId)))
+        .limit(1);
+
+      if (rows.length === 0) return null;
+      const r = rows[0];
+      return {
+        id: r.id,
+        workspace_id: r.workspaceId,
+        opportunity_id: r.opportunityId,
+        title: r.title,
+        statement: r.statement,
+        metrics_to_validate: r.metricsToValidate || undefined,
+        confidence_score: r.confidenceScore || undefined,
+        status: r.status as any,
+        created_at: r.createdAt.toISOString(),
+        updated_at: r.updatedAt.toISOString(),
+      };
+    } catch (err) {
+      console.error('Postgres getHypothesisById error:', err instanceof Error ? err.message : err);
+      throw new Error('Falha ao buscar hipótese');
+    }
+  }
+
   async createHypothesis(workspaceId: string, data: CreateHypothesisInput): Promise<Hypothesis> {
+
     try {
       const opp = await this.getOpportunityById(workspaceId, data.opportunity_id);
       if (!opp) {
@@ -1520,7 +1554,349 @@ class PostgresStore {
       last_evaluated_at: new Date().toISOString(),
     };
   }
+
+  // ETAPA 8: ROADMAP & STRATEGIC INITIATIVES
+  async listRoadmapItems(
+    workspaceId: string,
+    timeframe?: string,
+    status?: string
+  ): Promise<RoadmapItem[]> {
+    const conditions = [eq(schema.roadmapItems.workspaceId, workspaceId)];
+    if (timeframe) {
+      conditions.push(eq(schema.roadmapItems.timeframe, timeframe));
+    }
+    if (status) {
+      conditions.push(eq(schema.roadmapItems.status, status));
+    }
+
+    const rows = await db
+      .select({
+        item: schema.roadmapItems,
+        decisionTitle: schema.decisions.title,
+        opportunityTitle: schema.opportunities.title,
+      })
+      .from(schema.roadmapItems)
+      .leftJoin(schema.decisions, and(eq(schema.roadmapItems.decisionId, schema.decisions.id), eq(schema.decisions.workspaceId, workspaceId)))
+      .leftJoin(schema.opportunities, and(eq(schema.roadmapItems.opportunityId, schema.opportunities.id), eq(schema.opportunities.workspaceId, workspaceId)))
+      .where(and(...conditions))
+      .orderBy(desc(schema.roadmapItems.createdAt));
+
+    return rows.map((r) => ({
+      id: r.item.id,
+      workspace_id: r.item.workspaceId,
+      title: r.item.title,
+      description: r.item.description || undefined,
+      timeframe: r.item.timeframe as any,
+      status: r.item.status as any,
+      priority: r.item.priority as any,
+      target_quarter: r.item.targetQuarter || undefined,
+      decision_id: r.item.decisionId || undefined,
+      opportunity_id: r.item.opportunityId || undefined,
+      metrics_target: r.item.metricsTarget || undefined,
+      progress: r.item.progress,
+      owner_name: r.item.ownerName || undefined,
+      created_at: r.item.createdAt.toISOString(),
+      updated_at: r.item.updatedAt.toISOString(),
+      decision_title: r.decisionTitle || undefined,
+      opportunity_title: r.opportunityTitle || undefined,
+    }));
+  }
+
+  async getRoadmapItemById(workspaceId: string, id: string): Promise<RoadmapItem | null> {
+    const rows = await db
+      .select({
+        item: schema.roadmapItems,
+        decisionTitle: schema.decisions.title,
+        opportunityTitle: schema.opportunities.title,
+      })
+      .from(schema.roadmapItems)
+      .leftJoin(schema.decisions, and(eq(schema.roadmapItems.decisionId, schema.decisions.id), eq(schema.decisions.workspaceId, workspaceId)))
+      .leftJoin(schema.opportunities, and(eq(schema.roadmapItems.opportunityId, schema.opportunities.id), eq(schema.opportunities.workspaceId, workspaceId)))
+      .where(and(eq(schema.roadmapItems.id, id), eq(schema.roadmapItems.workspaceId, workspaceId)))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+    const r = rows[0];
+
+    return {
+      id: r.item.id,
+      workspace_id: r.item.workspaceId,
+      title: r.item.title,
+      description: r.item.description || undefined,
+      timeframe: r.item.timeframe as any,
+      status: r.item.status as any,
+      priority: r.item.priority as any,
+      target_quarter: r.item.targetQuarter || undefined,
+      decision_id: r.item.decisionId || undefined,
+      opportunity_id: r.item.opportunityId || undefined,
+      metrics_target: r.item.metricsTarget || undefined,
+      progress: r.item.progress,
+      owner_name: r.item.ownerName || undefined,
+      created_at: r.item.createdAt.toISOString(),
+      updated_at: r.item.updatedAt.toISOString(),
+      decision_title: r.decisionTitle || undefined,
+      opportunity_title: r.opportunityTitle || undefined,
+    };
+  }
+
+  async createRoadmapItem(
+    workspaceId: string,
+    input: CreateRoadmapItemInput
+  ): Promise<RoadmapItem> {
+    if (input.decision_id) {
+      const dec = await db
+        .select()
+        .from(schema.decisions)
+        .where(and(eq(schema.decisions.id, input.decision_id), eq(schema.decisions.workspaceId, workspaceId)))
+        .limit(1);
+      if (dec.length === 0) {
+        throw new BusinessRuleError('A decisão selecionada não existe neste workspace.');
+      }
+    }
+
+    if (input.opportunity_id) {
+      const opp = await db
+        .select()
+        .from(schema.opportunities)
+        .where(and(eq(schema.opportunities.id, input.opportunity_id), eq(schema.opportunities.workspaceId, workspaceId)))
+        .limit(1);
+      if (opp.length === 0) {
+        throw new BusinessRuleError('A oportunidade selecionada não existe neste workspace.');
+      }
+    }
+
+    const [created] = await db
+      .insert(schema.roadmapItems)
+      .values({
+        workspaceId,
+        title: input.title.trim(),
+        description: input.description?.trim() || null,
+        timeframe: input.timeframe || 'now',
+        status: input.status || 'planned',
+        priority: input.priority || 'medium',
+        targetQuarter: input.target_quarter?.trim() || null,
+        decisionId: input.decision_id || null,
+        opportunityId: input.opportunity_id || null,
+        metricsTarget: input.metrics_target?.trim() || null,
+        progress: Math.min(100, Math.max(0, input.progress ?? 0)),
+        ownerName: input.owner_name?.trim() || null,
+      })
+      .returning();
+
+    return (await this.getRoadmapItemById(workspaceId, created.id)) as RoadmapItem;
+  }
+
+  async updateRoadmapItem(
+    workspaceId: string,
+    id: string,
+    input: UpdateRoadmapItemInput
+  ): Promise<RoadmapItem> {
+    const existing = await this.getRoadmapItemById(workspaceId, id);
+    if (!existing) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+
+    if (input.decision_id) {
+      const dec = await db
+        .select()
+        .from(schema.decisions)
+        .where(and(eq(schema.decisions.id, input.decision_id), eq(schema.decisions.workspaceId, workspaceId)))
+        .limit(1);
+      if (dec.length === 0) {
+        throw new BusinessRuleError('A decisão selecionada não existe neste workspace.');
+      }
+    }
+
+    if (input.opportunity_id) {
+      const opp = await db
+        .select()
+        .from(schema.opportunities)
+        .where(and(eq(schema.opportunities.id, input.opportunity_id), eq(schema.opportunities.workspaceId, workspaceId)))
+        .limit(1);
+      if (opp.length === 0) {
+        throw new BusinessRuleError('A oportunidade selecionada não existe neste workspace.');
+      }
+    }
+
+    const updates: Partial<typeof schema.roadmapItems.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    if (input.title !== undefined) updates.title = input.title.trim();
+    if (input.description !== undefined) updates.description = input.description?.trim() || null;
+    if (input.timeframe !== undefined) updates.timeframe = input.timeframe;
+    if (input.status !== undefined) updates.status = input.status;
+    if (input.priority !== undefined) updates.priority = input.priority;
+    if (input.target_quarter !== undefined) updates.targetQuarter = input.target_quarter?.trim() || null;
+    if (input.decision_id !== undefined) updates.decisionId = input.decision_id || null;
+    if (input.opportunity_id !== undefined) updates.opportunityId = input.opportunity_id || null;
+    if (input.metrics_target !== undefined) updates.metricsTarget = input.metrics_target?.trim() || null;
+    if (input.progress !== undefined) updates.progress = Math.min(100, Math.max(0, input.progress));
+    if (input.owner_name !== undefined) updates.ownerName = input.owner_name?.trim() || null;
+
+    await db
+      .update(schema.roadmapItems)
+      .set(updates)
+      .where(and(eq(schema.roadmapItems.id, id), eq(schema.roadmapItems.workspaceId, workspaceId)));
+
+    return (await this.getRoadmapItemById(workspaceId, id)) as RoadmapItem;
+  }
+
+  async deleteRoadmapItem(workspaceId: string, id: string): Promise<void> {
+    const existing = await this.getRoadmapItemById(workspaceId, id);
+    if (!existing) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+
+    await db
+      .delete(schema.roadmapItems)
+      .where(and(eq(schema.roadmapItems.id, id), eq(schema.roadmapItems.workspaceId, workspaceId)));
+  }
+
+  async getRoadmapItemLineage(workspaceId: string, id: string): Promise<RoadmapLineage> {
+    const item = await this.getRoadmapItemById(workspaceId, id);
+    if (!item) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+
+    let decision: Decision | undefined;
+    let experiment: Experiment | undefined;
+    let hypothesis: Hypothesis | undefined;
+    let opportunity: Opportunity | undefined;
+    const problemIds = new Set<string>();
+
+    if (item.decision_id) {
+      const dec = await this.getDecisionById(workspaceId, item.decision_id);
+      if (dec) {
+        decision = dec;
+        const exp = await this.getExperimentById(workspaceId, dec.experiment_id);
+        if (exp) {
+          experiment = exp;
+          const hyp = await this.getHypothesisById(workspaceId, exp.hypothesis_id);
+          if (hyp) {
+            hypothesis = hyp;
+            const opp = await this.getOpportunityById(workspaceId, hyp.opportunity_id);
+            if (opp) {
+              opportunity = opp;
+            }
+          }
+        }
+      }
+    }
+
+    if (!opportunity && item.opportunity_id) {
+      const opp = await this.getOpportunityById(workspaceId, item.opportunity_id);
+      if (opp) opportunity = opp;
+    }
+
+    if (opportunity) {
+      const oppProbs = await db
+        .select()
+        .from(schema.opportunityProblems)
+        .where(and(eq(schema.opportunityProblems.opportunityId, opportunity.id), eq(schema.opportunityProblems.workspaceId, workspaceId)));
+      for (const op of oppProbs) {
+        problemIds.add(op.problemId);
+      }
+    }
+
+    const problems: Problem[] = [];
+    if (problemIds.size > 0) {
+      const probRows = await db
+        .select()
+        .from(schema.problems)
+        .where(and(inArray(schema.problems.id, Array.from(problemIds)), eq(schema.problems.workspaceId, workspaceId)));
+      problems.push(
+        ...probRows.map((p) => ({
+          id: p.id,
+          workspace_id: p.workspaceId,
+          title: p.title,
+          description: p.description,
+          impact: p.impact as any,
+          frequency: p.frequency as any,
+          status: p.status as any,
+          score: p.score || 0,
+          created_at: p.createdAt.toISOString(),
+          updated_at: p.updatedAt.toISOString(),
+        }))
+      );
+    }
+
+    const evidenceIds = new Set<string>();
+    if (problems.length > 0) {
+      const peRows = await db
+        .select()
+        .from(schema.problemEvidences)
+        .where(
+          and(
+            inArray(
+              schema.problemEvidences.problemId,
+              problems.map((p) => p.id)
+            ),
+            eq(schema.problemEvidences.workspaceId, workspaceId)
+          )
+        );
+      for (const pe of peRows) {
+        evidenceIds.add(pe.evidenceId);
+      }
+    }
+
+    const evidences: Evidence[] = [];
+    if (evidenceIds.size > 0) {
+      const evRows = await db
+        .select()
+        .from(schema.evidences)
+        .where(and(inArray(schema.evidences.id, Array.from(evidenceIds)), eq(schema.evidences.workspaceId, workspaceId)));
+      evidences.push(
+        ...evRows.map((e) => ({
+          id: e.id,
+          workspace_id: e.workspaceId,
+          research_id: e.researchId,
+          content: e.content,
+          source: e.source || undefined,
+          impact_score: e.impactScore,
+          tags: (e.tags as string[]) || [],
+          created_at: e.createdAt.toISOString(),
+        }))
+      );
+    }
+
+    const researchIds = new Set(evidences.map((e) => e.research_id));
+    const researches: Research[] = [];
+    if (researchIds.size > 0) {
+      const resRows = await db
+        .select()
+        .from(schema.researches)
+        .where(and(inArray(schema.researches.id, Array.from(researchIds)), eq(schema.researches.workspaceId, workspaceId)));
+      researches.push(
+        ...resRows.map((r) => ({
+          id: r.id,
+          workspace_id: r.workspaceId,
+          title: r.title,
+          objective: r.objective || undefined,
+          target_audience: r.targetAudience || undefined,
+          raw_notes: r.rawNotes || undefined,
+          key_findings: (r.keyFindings as string[]) || [],
+          analysis_status: r.analysisStatus as any,
+          status: r.status as any,
+          created_at: r.createdAt.toISOString(),
+          updated_at: r.updatedAt.toISOString(),
+        }))
+      );
+    }
+
+    return {
+      roadmap_item: item,
+      decision,
+      experiment,
+      hypothesis,
+      opportunity,
+      problems,
+      evidences,
+      researches,
+    };
+  }
 }
+
 
 import { MemoryStore } from './memoryStore.js';
 

@@ -9,7 +9,9 @@ import {
   ArrowRight,
   UserPlus,
   LogIn,
-  KeyRound
+  KeyRound,
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { 
   auth, 
@@ -30,58 +32,115 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
   const [name, setName] = useState('');
   const [customToken, setCustomToken] = useState('');
   const [loading, setLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
 
-  const handleFirebaseAuth = async (e: React.FormEvent) => {
+  // 1. Instant Admin Access
+  const handleAdminLogin = async () => {
+    setAdminLoading(true);
+    setErrorMsg(null);
+    try {
+      const response = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'adm@sip.com',
+          name: 'Administrador (ADM)',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Falha ao autenticar como administrador.');
+      }
+
+      setAuthToken(data.token);
+      onAuthenticated(data.user);
+    } catch (err: any) {
+      console.error('Admin login error:', err);
+      setErrorMsg(err.message || 'Erro ao efetuar login de Administrador.');
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  // 2. Standard Form Login/Register with API fallback
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg(null);
 
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setErrorMsg('Por favor, informe seu email.');
+      setLoading(false);
+      return;
+    }
+
+    // Try Firebase Auth first if available
     try {
       if (mode === 'login') {
-        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
         const token = await userCred.user.getIdToken();
         setAuthToken(token);
         onAuthenticated({
           uid: userCred.user.uid,
-          email: userCred.user.email || email,
-          name: userCred.user.displayName || email.split('@')[0],
+          email: userCred.user.email || cleanEmail,
+          name: userCred.user.displayName || cleanEmail.split('@')[0],
         });
+        return;
       } else if (mode === 'register') {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const token = await userCred.user.getIdToken();
         setAuthToken(token);
         onAuthenticated({
           uid: userCred.user.uid,
-          email: userCred.user.email || email,
-          name: name || email.split('@')[0],
+          email: userCred.user.email || cleanEmail,
+          name: name || cleanEmail.split('@')[0],
         });
+        return;
       }
+    } catch (fbErr: any) {
+      console.info('Firebase auth fallback to local API auth:', fbErr?.code || fbErr?.message);
+    }
+
+    // Fallback to internal API auth
+    try {
+      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: password || '123456',
+          name: name || cleanEmail.split('@')[0],
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Não foi possível autenticar.');
+      }
+
+      setAuthToken(data.token);
+      onAuthenticated(data.user);
     } catch (err: any) {
-      console.warn('Firebase Auth notice:', err);
-      // If Firebase Auth API key is not configured in client, inform user gracefully
-      if (err.code === 'auth/api-key-not-valid' || err.message?.includes('API key not valid') || err.code === 'auth/network-request-failed') {
-        setErrorMsg('Serviço Firebase Auth não configurado no cliente. Você pode utilizar a aba "Token JWT" para inserir o token de autenticação emitido pelo Firebase.');
-        setMode('token');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setErrorMsg('Email ou senha incorretos.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setErrorMsg('Este email já está cadastrado. Tente fazer login.');
-      } else if (err.code === 'auth/weak-password') {
-        setErrorMsg('A senha deve ter pelo menos 6 caracteres.');
-      } else {
-        setErrorMsg(err.message || 'Erro ao autenticar com Firebase.');
-      }
+      setErrorMsg(err.message || 'Erro ao realizar autenticação.');
     } finally {
       setLoading(false);
     }
   };
 
+  // 3. Custom Token submit
   const handleCustomTokenSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const token = customToken.trim();
     if (!token) {
-      setErrorMsg('Por favor, informe um token Firebase JWT válido.');
+      setErrorMsg('Por favor, informe um token JWT válido.');
       return;
     }
 
@@ -90,7 +149,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
     try {
       setAuthToken(token);
       onAuthenticated({
-        uid: 'user_authenticated',
+        uid: 'usr_authenticated',
         email: email || 'usuario@productos.io',
         name: name || 'Usuário Autenticado',
       });
@@ -112,8 +171,49 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">Product OS Discovery Engine</h1>
           <p className="text-xs text-slate-400">
-            Autenticação Segura via Firebase Bearer JWT
+            Acesso ao Sistema de Inteligência & Descoberta de Produto
           </p>
+        </div>
+
+        {/* Quick Admin Access Card */}
+        <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-950 border border-indigo-500/40 shadow-inner space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded bg-indigo-500/20 text-indigo-300">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <div>
+              <div className="text-xs font-semibold text-white">Acesso Rápido de Administrador</div>
+              <div className="text-[11px] text-slate-400">Acesse instantaneamente como usuário ADM</div>
+            </div>
+          </div>
+          
+          <button
+            id="btn-admin-quick-login"
+            type="button"
+            onClick={handleAdminLogin}
+            disabled={adminLoading || loading}
+            className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-md shadow-indigo-950/40"
+          >
+            {adminLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Liberando Acesso ADM...</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Entrar como Administrador (ADM)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="relative flex items-center justify-center">
+          <div className="border-t border-slate-800 w-full"></div>
+          <span className="bg-slate-900 px-3 text-[11px] text-slate-500 uppercase tracking-wider font-medium">
+            ou acesse com email
+          </span>
         </div>
 
         {/* Mode Selector Tabs */}
@@ -167,9 +267,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
           </div>
         )}
 
-        {/* Form: Firebase Login / Register */}
+        {/* Form: Login / Register */}
         {(mode === 'login' || mode === 'register') && (
-          <form onSubmit={handleFirebaseAuth} className="space-y-4">
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
             {mode === 'register' && (
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300">Nome</label>
@@ -188,7 +288,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-300">Email corporativo</label>
+              <label className="text-xs font-medium text-slate-300">Email</label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
                 <input
@@ -222,8 +322,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
             <button
               id="btn-auth-submit"
               type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-md"
+              disabled={loading || adminLoading}
+              className="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition border border-slate-700"
             >
               {loading ? (
                 <>
@@ -232,7 +332,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
                 </>
               ) : (
                 <>
-                  <span>{mode === 'login' ? 'Entrar no Sistema' : 'Criar Conta e Entrar'}</span>
+                  <span>{mode === 'login' ? 'Entrar com Email' : 'Criar Conta e Acessar'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -245,7 +345,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
           <form onSubmit={handleCustomTokenSubmit} className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
-                <span>Firebase Bearer ID Token</span>
+                <span>Bearer ID Token</span>
                 <span className="text-[10px] text-slate-500">JWT</span>
               </label>
               <textarea
@@ -254,7 +354,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
                 required
                 value={customToken}
                 onChange={(e) => setCustomToken(e.target.value)}
-                placeholder="Cole aqui o Bearer ID Token emitido pelo Firebase..."
+                placeholder="Cole aqui o Token JWT..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>

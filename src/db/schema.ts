@@ -266,3 +266,44 @@ export const productInsights = pgTable('product_insights', {
     workspaceIdx: index('idx_product_insights_workspace').on(table.workspaceId),
   };
 });
+
+// ETAPA 8: Roadmap & Strategic Initiatives table
+export const roadmapItems = pgTable('roadmap_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  timeframe: varchar('timeframe', { length: 50 }).notNull().default('now'),
+  status: varchar('status', { length: 50 }).notNull().default('planned'),
+  priority: varchar('priority', { length: 50 }).notNull().default('medium'),
+  targetQuarter: varchar('target_quarter', { length: 50 }),
+  decisionId: uuid('decision_id'),
+  opportunityId: uuid('opportunity_id'),
+  metricsTarget: text('metrics_target'),
+  progress: integer('progress').default(0).notNull(),
+  ownerName: varchar('owner_name', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    decisionFk: foreignKey({
+      columns: [table.decisionId, table.workspaceId],
+      foreignColumns: [decisions.id, decisions.workspaceId],
+      name: 'fk_roadmap_decision_workspace',
+    }).onDelete('set null'),
+    opportunityFk: foreignKey({
+      columns: [table.opportunityId, table.workspaceId],
+      foreignColumns: [opportunities.id, opportunities.workspaceId],
+      name: 'fk_roadmap_opportunity_workspace',
+    }).onDelete('set null'),
+    timeframeCheck: check('chk_roadmap_timeframe', sql`${table.timeframe} IN ('now', 'next', 'later')`),
+    statusCheck: check('chk_roadmap_status', sql`${table.status} IN ('planned', 'in_progress', 'delivered', 'blocked', 'deferred')`),
+    priorityCheck: check('chk_roadmap_priority', sql`${table.priority} IN ('critical', 'high', 'medium', 'low')`),
+    progressCheck: check('chk_roadmap_progress', sql`${table.progress} >= 0 AND ${table.progress} <= 100`),
+    workspaceIdx: index('idx_roadmap_items_workspace').on(table.workspaceId),
+    decisionIdx: index('idx_roadmap_items_decision').on(table.decisionId),
+    opportunityIdx: index('idx_roadmap_items_opportunity').on(table.opportunityId),
+    timeframeIdx: index('idx_roadmap_items_timeframe').on(table.workspaceId, table.timeframe),
+  };
+});
+

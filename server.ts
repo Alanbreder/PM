@@ -13,7 +13,9 @@ import { opportunityRouter } from './server/routes/opportunity.routes.js';
 import { hypothesisRouter } from './server/routes/hypothesis.routes.js';
 import { experimentRouter } from './server/routes/experiment.routes.js';
 import { decisionRouter } from './server/routes/decision.routes.js';
+import { roadmapRouter } from './server/routes/roadmap.routes.js';
 import { intelligenceRouter } from './server/routes/intelligence.routes.js';
+
 
 async function startServer() {
   // In production, DATABASE_URL must be strictly set
@@ -55,7 +57,9 @@ async function startServer() {
   app.use('/api/hypotheses', hypothesisRouter);
   app.use('/api/experiments', experimentRouter);
   app.use('/api/decisions', decisionRouter);
+  app.use('/api/roadmap', roadmapRouter);
   app.use('/api/workspaces/:workspaceId/intelligence', intelligenceRouter);
+
 
   // Vite middleware for dev or static server for production
   if (process.env.NODE_ENV !== 'production') {

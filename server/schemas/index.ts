@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const uuidSchema = z.string().uuid('ID com formato UUID inválido');
+export const uuidSchema = z
+  .string()
+  .min(1, 'ID é obrigatório')
+  .refine(
+    (val) => /^[0-9a-fA-F-]{36}$/.test(val) || /^[a-zA-Z0-9_-]{3,64}$/.test(val),
+    { message: 'ID com formato inválido' }
+  );
+
 
 export const uuidParamSchema = z.object({
   id: uuidSchema,
@@ -166,3 +173,41 @@ export const updateDecisionSchema = z
     status: decisionStatusEnum.optional(),
   })
   .strict();
+
+// ETAPA 8: Roadmap & Strategic Initiatives Schemas
+export const roadmapTimeframeEnum = z.enum(['now', 'next', 'later']);
+export const roadmapStatusEnum = z.enum(['planned', 'in_progress', 'delivered', 'blocked', 'deferred']);
+export const roadmapPriorityEnum = z.enum(['critical', 'high', 'medium', 'low']);
+
+export const createRoadmapItemSchema = z
+  .object({
+    title: z.string().min(3, 'O título da iniciativa deve ter no mínimo 3 caracteres').max(255),
+    description: z.string().optional(),
+    timeframe: roadmapTimeframeEnum.optional().default('now'),
+    status: roadmapStatusEnum.optional().default('planned'),
+    priority: roadmapPriorityEnum.optional().default('medium'),
+    target_quarter: z.string().max(50).optional(),
+    decision_id: uuidSchema.optional().nullable(),
+    opportunity_id: uuidSchema.optional().nullable(),
+    metrics_target: z.string().optional(),
+    progress: z.number().int().min(0, 'Progresso deve ser no mínimo 0%').max(100, 'Progresso não pode ultrapassar 100%').optional().default(0),
+    owner_name: z.string().max(255).optional(),
+  })
+  .strict();
+
+export const updateRoadmapItemSchema = z
+  .object({
+    title: z.string().min(3, 'O título da iniciativa deve ter no mínimo 3 caracteres').max(255).optional(),
+    description: z.string().optional(),
+    timeframe: roadmapTimeframeEnum.optional(),
+    status: roadmapStatusEnum.optional(),
+    priority: roadmapPriorityEnum.optional(),
+    target_quarter: z.string().max(50).optional(),
+    decision_id: uuidSchema.optional().nullable(),
+    opportunity_id: uuidSchema.optional().nullable(),
+    metrics_target: z.string().optional(),
+    progress: z.number().int().min(0).max(100).optional(),
+    owner_name: z.string().max(255).optional(),
+  })
+  .strict();
+

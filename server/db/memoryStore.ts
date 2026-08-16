@@ -27,6 +27,10 @@ import {
   ProductInsight,
   InsightStatus,
   DiscoveryHealthMetrics,
+  RoadmapItem,
+  CreateRoadmapItemInput,
+  UpdateRoadmapItemInput,
+  RoadmapLineage,
 } from '../types/index.js';
 import { BusinessRuleError } from '../utils/errors.js';
 
@@ -41,10 +45,13 @@ interface SchemaData {
   problems: Problem[];
   problemEvidences: { id: string; workspace_id: string; problem_id: string; evidence_id: string }[];
   opportunities: Opportunity[];
+  opportunityProblems: { id: string; workspace_id: string; opportunity_id: string; problem_id: string }[];
   hypotheses: Hypothesis[];
+
   experiments: Experiment[];
   decisions: Decision[];
   insights: ProductInsight[];
+  roadmapItems: RoadmapItem[];
 }
 
 function getInitialData(): SchemaData {
@@ -57,7 +64,9 @@ function getInitialData(): SchemaData {
   const hypId = 'hyp_demo_001';
   const expId = 'exp_demo_001';
   const decId = 'dec_demo_001';
+  const roadId = 'road_demo_001';
   const now = new Date().toISOString();
+
 
   return {
     users: [
@@ -162,7 +171,16 @@ function getInitialData(): SchemaData {
         updated_at: now,
       },
     ],
+    opportunityProblems: [
+      {
+        id: 'op_prob_demo_001',
+        workspace_id: defaultWsId,
+        opportunity_id: opId,
+        problem_id: probId,
+      },
+    ],
     hypotheses: [
+
       {
         id: hypId,
         workspace_id: defaultWsId,
@@ -207,8 +225,28 @@ function getInitialData(): SchemaData {
       },
     ],
     insights: [],
+    roadmapItems: [
+      {
+        id: roadId,
+        workspace_id: defaultWsId,
+        title: 'Assistente Validador de Configuração em Tempo Real',
+        description: 'Implementar validação proativa de credenciais e rotas de webhook no fluxo de setup inicial.',
+        timeframe: 'now',
+        status: 'in_progress',
+        priority: 'high',
+        target_quarter: '2026-Q3',
+        decision_id: decId,
+        opportunity_id: opId,
+        metrics_target: 'Reduzir tickets de suporte no setup em 70% e aumentar conversão para 88%',
+        progress: 45,
+        owner_name: 'Equipe de Core Platform',
+        created_at: now,
+        updated_at: now,
+      },
+    ],
   };
 }
+
 
 export class MemoryStore {
   private data: SchemaData;
@@ -606,9 +644,48 @@ export class MemoryStore {
     };
 
     this.data.opportunities.push(opportunity);
+
+    if (data.problem_ids && data.problem_ids.length > 0) {
+      if (!this.data.opportunityProblems) this.data.opportunityProblems = [];
+      for (const pId of data.problem_ids) {
+        this.data.opportunityProblems.push({
+          id: `op_p_${randomUUID()}`,
+          workspace_id: workspaceId,
+          opportunity_id: opportunity.id,
+          problem_id: pId,
+        });
+      }
+    }
+
     this.saveToFile();
     return opportunity;
   }
+
+  async linkOpportunityProblems(
+    workspaceId: string,
+    opportunityId: string,
+    problemIds: string[]
+  ): Promise<void> {
+    const opp = await this.getOpportunityById(workspaceId, opportunityId);
+    if (!opp) throw new BusinessRuleError('Oportunidade não encontrada.');
+
+    if (!this.data.opportunityProblems) this.data.opportunityProblems = [];
+    for (const pId of problemIds) {
+      const exists = this.data.opportunityProblems.some(
+        (op) => op.opportunity_id === opportunityId && op.problem_id === pId && op.workspace_id === workspaceId
+      );
+      if (!exists) {
+        this.data.opportunityProblems.push({
+          id: `op_p_${randomUUID()}`,
+          workspace_id: workspaceId,
+          opportunity_id: opportunityId,
+          problem_id: pId,
+        });
+      }
+    }
+    this.saveToFile();
+  }
+
 
   async updateOpportunity(
     workspaceId: string,
@@ -985,5 +1062,258 @@ export class MemoryStore {
       last_evaluated_at: new Date().toISOString(),
     };
   }
+
+  // ETAPA 8: ROADMAP & STRATEGIC INITIATIVES
+  async listRoadmapItems(
+    workspaceId: string,
+    timeframe?: string,
+    status?: string
+  ): Promise<RoadmapItem[]> {
+    if (!this.data.roadmapItems) this.data.roadmapItems = [];
+    const items = this.data.roadmapItems.filter(
+      (item) =>
+        item.workspace_id === workspaceId &&
+        (!timeframe || item.timeframe === timeframe) &&
+        (!status || item.status === status)
+    );
+
+    // Attach computed titles
+    return items.map((item) => {
+      const decision = item.decision_id
+        ? this.data.decisions.find((d) => d.id === item.decision_id && d.workspace_id === workspaceId)
+        : undefined;
+      const opportunity = item.opportunity_id
+        ? this.data.opportunities.find((o) => o.id === item.opportunity_id && o.workspace_id === workspaceId)
+        : undefined;
+      return {
+        ...item,
+        decision_title: decision?.title,
+        opportunity_title: opportunity?.title,
+      };
+    });
+  }
+
+  async getRoadmapItemById(workspaceId: string, id: string): Promise<RoadmapItem | null> {
+    if (!this.data.roadmapItems) this.data.roadmapItems = [];
+    const item = this.data.roadmapItems.find(
+      (i) => i.id === id && i.workspace_id === workspaceId
+    );
+    if (!item) return null;
+
+    const decision = item.decision_id
+      ? this.data.decisions.find((d) => d.id === item.decision_id && d.workspace_id === workspaceId)
+      : undefined;
+    const opportunity = item.opportunity_id
+      ? this.data.opportunities.find((o) => o.id === item.opportunity_id && o.workspace_id === workspaceId)
+      : undefined;
+
+    return {
+      ...item,
+      decision_title: decision?.title,
+      opportunity_title: opportunity?.title,
+    };
+  }
+
+  async createRoadmapItem(
+    workspaceId: string,
+    input: CreateRoadmapItemInput
+  ): Promise<RoadmapItem> {
+    if (!this.data.roadmapItems) this.data.roadmapItems = [];
+
+    // Multi-tenant foreign reference validation
+    if (input.decision_id) {
+      const decision = this.data.decisions.find(
+        (d) => d.id === input.decision_id && d.workspace_id === workspaceId
+      );
+      if (!decision) {
+        throw new BusinessRuleError('A decisão selecionada não existe neste workspace.');
+      }
+    }
+
+    if (input.opportunity_id) {
+      const opportunity = this.data.opportunities.find(
+        (o) => o.id === input.opportunity_id && o.workspace_id === workspaceId
+      );
+      if (!opportunity) {
+        throw new BusinessRuleError('A oportunidade selecionada não existe neste workspace.');
+      }
+    }
+
+    const now = new Date().toISOString();
+    const newItem: RoadmapItem = {
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      title: input.title.trim(),
+      description: input.description?.trim(),
+      timeframe: input.timeframe || 'now',
+      status: input.status || 'planned',
+      priority: input.priority || 'medium',
+      target_quarter: input.target_quarter?.trim(),
+      decision_id: input.decision_id || undefined,
+      opportunity_id: input.opportunity_id || undefined,
+      metrics_target: input.metrics_target?.trim(),
+      progress: Math.min(100, Math.max(0, input.progress ?? 0)),
+      owner_name: input.owner_name?.trim(),
+      created_at: now,
+      updated_at: now,
+    };
+
+    this.data.roadmapItems.unshift(newItem);
+    this.saveToFile();
+    return this.getRoadmapItemById(workspaceId, newItem.id) as Promise<RoadmapItem>;
+  }
+
+  async updateRoadmapItem(
+    workspaceId: string,
+    id: string,
+    input: UpdateRoadmapItemInput
+  ): Promise<RoadmapItem> {
+    if (!this.data.roadmapItems) this.data.roadmapItems = [];
+    const index = this.data.roadmapItems.findIndex(
+      (i) => i.id === id && i.workspace_id === workspaceId
+    );
+    if (index === -1) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+
+    if (input.decision_id) {
+      const decision = this.data.decisions.find(
+        (d) => d.id === input.decision_id && d.workspace_id === workspaceId
+      );
+      if (!decision) {
+        throw new BusinessRuleError('A decisão selecionada não existe neste workspace.');
+      }
+    }
+
+    if (input.opportunity_id) {
+      const opportunity = this.data.opportunities.find(
+        (o) => o.id === input.opportunity_id && o.workspace_id === workspaceId
+      );
+      if (!opportunity) {
+        throw new BusinessRuleError('A oportunidade selecionada não existe neste workspace.');
+      }
+    }
+
+    const current = this.data.roadmapItems[index];
+    const updated: RoadmapItem = {
+      ...current,
+      title: input.title !== undefined ? input.title.trim() : current.title,
+      description: input.description !== undefined ? input.description?.trim() : current.description,
+      timeframe: input.timeframe !== undefined ? input.timeframe : current.timeframe,
+      status: input.status !== undefined ? input.status : current.status,
+      priority: input.priority !== undefined ? input.priority : current.priority,
+      target_quarter: input.target_quarter !== undefined ? input.target_quarter?.trim() : current.target_quarter,
+      decision_id: input.decision_id !== undefined ? (input.decision_id || undefined) : current.decision_id,
+      opportunity_id: input.opportunity_id !== undefined ? (input.opportunity_id || undefined) : current.opportunity_id,
+      metrics_target: input.metrics_target !== undefined ? input.metrics_target?.trim() : current.metrics_target,
+      progress: input.progress !== undefined ? Math.min(100, Math.max(0, input.progress)) : current.progress,
+      owner_name: input.owner_name !== undefined ? input.owner_name?.trim() : current.owner_name,
+      updated_at: new Date().toISOString(),
+    };
+
+    this.data.roadmapItems[index] = updated;
+    this.saveToFile();
+    return this.getRoadmapItemById(workspaceId, id) as Promise<RoadmapItem>;
+  }
+
+  async deleteRoadmapItem(workspaceId: string, id: string): Promise<void> {
+    if (!this.data.roadmapItems) this.data.roadmapItems = [];
+    const index = this.data.roadmapItems.findIndex(
+      (i) => i.id === id && i.workspace_id === workspaceId
+    );
+    if (index === -1) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+    this.data.roadmapItems.splice(index, 1);
+    this.saveToFile();
+  }
+
+  async getRoadmapItemLineage(workspaceId: string, id: string): Promise<RoadmapLineage> {
+    const item = await this.getRoadmapItemById(workspaceId, id);
+    if (!item) {
+      throw new BusinessRuleError('Iniciativa de Roadmap não encontrada.');
+    }
+
+    let decision: Decision | undefined;
+    let experiment: Experiment | undefined;
+    let hypothesis: Hypothesis | undefined;
+    let opportunity: Opportunity | undefined;
+    const problemIds = new Set<string>();
+
+    if (item.decision_id) {
+      decision = this.data.decisions.find(
+        (d) => d.id === item.decision_id && d.workspace_id === workspaceId
+      );
+      if (decision) {
+        experiment = this.data.experiments.find(
+          (e) => e.id === decision!.experiment_id && e.workspace_id === workspaceId
+        );
+        if (experiment) {
+          hypothesis = this.data.hypotheses.find(
+            (h) => h.id === experiment!.hypothesis_id && h.workspace_id === workspaceId
+          );
+          if (hypothesis) {
+            opportunity = this.data.opportunities.find(
+              (o) => o.id === hypothesis!.opportunity_id && o.workspace_id === workspaceId
+            );
+          }
+        }
+      }
+    }
+
+    if (!opportunity && item.opportunity_id) {
+      opportunity = this.data.opportunities.find(
+        (o) => o.id === item.opportunity_id && o.workspace_id === workspaceId
+      );
+    }
+
+    // Resolve Problems linked to Opportunity
+    if (opportunity) {
+      const links = (this.data.opportunityProblems || []).filter(
+        (op) => op.opportunity_id === opportunity!.id && op.workspace_id === workspaceId
+      );
+      for (const l of links) {
+        problemIds.add(l.problem_id);
+      }
+    }
+
+
+    const problems = this.data.problems.filter(
+      (p) => p.workspace_id === workspaceId && problemIds.has(p.id)
+    );
+
+    // Resolve Evidences linked to Problems
+    const evidenceIds = new Set<string>();
+    for (const p of problems) {
+      const peLinks = this.data.problemEvidences.filter(
+        (pe) => pe.problem_id === p.id && pe.workspace_id === workspaceId
+      );
+      for (const l of peLinks) {
+        evidenceIds.add(l.evidence_id);
+      }
+    }
+
+    const evidences = this.data.evidences.filter(
+      (e) => e.workspace_id === workspaceId && evidenceIds.has(e.id)
+    );
+
+    // Resolve Researches linked to Evidences
+    const researchIds = new Set(evidences.map((e) => e.research_id));
+    const researches = this.data.researches.filter(
+      (r) => r.workspace_id === workspaceId && researchIds.has(r.id)
+    );
+
+    return {
+      roadmap_item: item,
+      decision,
+      experiment,
+      hypothesis,
+      opportunity,
+      problems,
+      evidences,
+      researches,
+    };
+  }
 }
+
 

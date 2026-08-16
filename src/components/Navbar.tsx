@@ -9,6 +9,7 @@ import {
   FlaskConical, 
   CheckCircle2, 
   BrainCircuit,
+  Compass,
   FolderKanban, 
   Plus,
   Sparkles,
@@ -45,8 +46,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'hypothesis', label: '5. Hipóteses', icon: GitCommit },
     { id: 'experiment', label: '6. Experimentos', icon: FlaskConical },
     { id: 'decision', label: '7. Decisões', icon: CheckCircle2 },
-    { id: 'intelligence', label: '8. Inteligência do Produto', icon: BrainCircuit, highlight: true },
+    { id: 'intelligence', label: '8. Inteligência do Produto', icon: BrainCircuit, badge: 'Etapa 7' },
+    { id: 'roadmap', label: '9. Roadmap & Entregas', icon: Compass, badge: 'Etapa 8', highlight: true },
   ];
+
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-40 shadow-sm">
@@ -140,14 +143,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent'
                 } ${tab.highlight && !isActive ? 'text-amber-400 hover:text-amber-300' : ''}`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : tab.highlight ? 'text-amber-400' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : tab.highlight ? 'text-indigo-400' : 'text-slate-400'}`} />
                 {tab.label}
-                {tab.highlight && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">
-                    Etapa 7
+                {tab.badge && (
+                  <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded border ${
+                    tab.highlight 
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' 
+                      : 'bg-slate-700/50 text-slate-300 border-slate-600/40'
+                  }`}>
+                    {tab.badge}
                   </span>
                 )}
               </button>
+
             );
           })}
         </nav>
