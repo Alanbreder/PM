@@ -19,10 +19,11 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
-  // Mock auth is ONLY allowed when ALLOW_DEV_MOCK_AUTH === 'true' AND NODE_ENV !== 'production'
+  // Mock auth is ONLY allowed when NODE_ENV === 'test' AND ALLOW_DEV_MOCK_AUTH === 'true'
+  // In development, staging, and production, real Firebase Bearer JWT is strictly required.
   const isMockAuthAllowed =
-    process.env.ALLOW_DEV_MOCK_AUTH === 'true' &&
-    process.env.NODE_ENV !== 'production';
+    process.env.NODE_ENV === 'test' &&
+    process.env.ALLOW_DEV_MOCK_AUTH === 'true';
 
   if (isMockAuthAllowed && req.headers['x-test-user-id']) {
     req.user = {

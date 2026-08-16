@@ -16,6 +16,12 @@ import { decisionRouter } from './server/routes/decision.routes.js';
 import { intelligenceRouter } from './server/routes/intelligence.routes.js';
 
 async function startServer() {
+  // In production, DATABASE_URL must be strictly set
+  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+    console.error('FATAL: A variável de ambiente DATABASE_URL é obrigatória em produção.');
+    process.exit(1);
+  }
+
   const app = express();
   const PORT = 3000;
 

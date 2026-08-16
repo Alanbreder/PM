@@ -11,7 +11,9 @@ import {
   BrainCircuit,
   FolderKanban, 
   Plus,
-  Sparkles
+  Sparkles,
+  LogOut,
+  User
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -21,6 +23,8 @@ interface NavbarProps {
   onOpenNewWorkspace: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  currentUser?: { uid: string; email: string; name?: string } | null;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,6 +34,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewWorkspace,
   activeTab,
   setActiveTab,
+  currentUser,
+  onLogout,
 }) => {
   const tabs = [
     { id: 'research', label: '1. Pesquisa', icon: Search },
@@ -85,12 +91,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Quick status badge */}
-          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Ciclo de Aprendizado Ativo
-            </span>
+          {/* Quick status badge & User Profile / Logout */}
+          <div className="flex items-center gap-3 text-xs">
+            <div className="hidden md:flex items-center gap-2 text-slate-400">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Ciclo Ativo
+              </span>
+            </div>
+
+            {currentUser && (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                    {currentUser.name || currentUser.email}
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-mono leading-tight">
+                    {currentUser.email}
+                  </span>
+                </div>
+                {onLogout && (
+                  <button
+                    id="btn-logout"
+                    onClick={onLogout}
+                    title="Sair / Trocar de Conta"
+                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

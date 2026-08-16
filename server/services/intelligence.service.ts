@@ -74,9 +74,9 @@ export class IntelligenceService {
 
     let rawInsights: any[] = [];
 
-    // 2. Call Gemini API using central config if key is present
+    // 2. Call Gemini API using central config if key is present (skip in test mode for deterministic test isolation)
     const apiKey = config.geminiApiKey;
-    if (apiKey) {
+    if (apiKey && process.env.NODE_ENV !== 'test') {
       try {
         const ai = new GoogleGenAI({
           apiKey,

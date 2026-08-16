@@ -1,5 +1,13 @@
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('product_os_token') || 'demo-token';
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem('product_os_token');
+};
+
+export const setAuthToken = (token: string): void => {
+  localStorage.setItem('product_os_token', token);
+};
+
+export const clearAuthToken = (): void => {
+  localStorage.removeItem('product_os_token');
 };
 
 export const apiFetch = async (url: string, options: RequestInit = {}, workspaceId?: string) => {
@@ -11,12 +19,6 @@ export const apiFetch = async (url: string, options: RequestInit = {}, workspace
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  // In demo/dev test mode, set test header if no real token
-  if (token === 'demo-token') {
-    headers['x-test-user-id'] = 'usr_demo_admin';
-    headers['x-test-user-email'] = 'demo@productos.io';
   }
 
   if (workspaceId) {
@@ -31,8 +33,12 @@ export const apiFetch = async (url: string, options: RequestInit = {}, workspace
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || `Erro ${response.status}: Falha na requisição`);
+    const error: any = new Error(data.message || data.error || `Erro ${response.status}: Falha na requisição`);
+    error.status = response.status;
+    error.code = data.error;
+    throw error;
   }
 
   return data;
 };
+

@@ -218,6 +218,9 @@ export class MemoryStore {
   }
 
   private loadFromFile(): SchemaData {
+    if (process.env.NODE_ENV === 'test' || process.env.PERSIST_MEMORY_TO_FILE !== 'true') {
+      return getInitialData();
+    }
     try {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
@@ -226,12 +229,13 @@ export class MemoryStore {
     } catch (err) {
       console.warn('MemoryStore load warning, using initial data:', err);
     }
-    const init = getInitialData();
-    this.saveToFile(init);
-    return init;
+    return getInitialData();
   }
 
   private saveToFile(data: SchemaData = this.data): void {
+    if (process.env.NODE_ENV === 'test' || process.env.PERSIST_MEMORY_TO_FILE !== 'true') {
+      return;
+    }
     try {
       const dir = path.dirname(DB_FILE);
       if (!fs.existsSync(dir)) {

@@ -169,6 +169,7 @@ async function runIntelligenceTests() {
   console.log('✅ Status do Insight atualizado com sucesso.');
 
   console.log('🎉 Todos os testes de Inteligência do Produto e Segurança passaram!');
+  process.exit(0);
 }
 
 runIntelligenceTests().catch((err) => {

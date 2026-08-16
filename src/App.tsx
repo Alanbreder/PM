@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Workspace } from './types';
-import { apiFetch } from './lib/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Workspace, User } from './types';
+import { apiFetch, getAuthToken, clearAuthToken } from './lib/api';
 import { Navbar } from './components/Navbar';
 import { ResearchView } from './components/ResearchView';
 import { EvidenceView } from './components/EvidenceView';
@@ -11,26 +11,46 @@ import { ExperimentView } from './components/ExperimentView';
 import { DecisionView } from './components/DecisionView';
 import { IntelligenceView } from './components/IntelligenceView';
 import { WorkspaceModal } from './components/WorkspaceModal';
+import { AuthView } from './components/AuthView';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [activeTab, setActiveTab] = useState('intelligence'); // Default to Etapa 7: Inteligência do Produto
   const [loading, setLoading] = useState(true);
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
-  const initApp = async () => {
+  const initApp = useCallback(async (userOverride?: User) => {
     setLoading(true);
+    setAuthError(null);
+
+    const token = getAuthToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Sync demo user
-      await apiFetch('/api/auth/sync-user', {
-        method: 'POST',
-        body: JSON.stringify({
-          uid: 'usr_demo_admin',
-          email: 'demo@productos.io',
-          name: 'Demo Admin',
-        }),
-      });
+      // Sync user if provided or sync user profile
+      if (userOverride) {
+        try {
+          await apiFetch('/api/auth/sync-user', {
+            method: 'POST',
+            body: JSON.stringify({
+              uid: userOverride.uid,
+              email: userOverride.email,
+              name: userOverride.name || userOverride.email.split('@')[0],
+            }),
+          });
+          setCurrentUser(userOverride);
+        } catch {
+          // Non-blocking sync error
+        }
+      }
 
       // Load workspaces
       const wsRes = await apiFetch('/api/workspaces');
@@ -49,17 +69,38 @@ export default function App() {
       }
 
       setWorkspaces(list);
-      setCurrentWorkspace(list[0]);
-    } catch (err) {
-      console.error('App init error:', err);
+      setCurrentWorkspace(list[0] || null);
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      if (err.status === 401 || err.code === 'UNAUTHORIZED' || err.message?.includes('Token de autenticação')) {
+        clearAuthToken();
+        setIsAuthenticated(false);
+        setAuthError('Sessão expirada ou token inválido. Por favor, autentique-se novamente.');
+      } else {
+        setAuthError(err.message || 'Erro ao carregar workspaces');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     initApp();
-  }, []);
+  }, [initApp]);
+
+  const handleAuthenticated = (user: { uid: string; email: string; name?: string }) => {
+    setCurrentUser(user);
+    initApp(user);
+  };
+
+  const handleLogout = () => {
+    clearAuthToken();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setWorkspaces([]);
+    setCurrentWorkspace(null);
+    setAuthError(null);
+  };
 
   if (loading) {
     return (
@@ -72,6 +113,15 @@ export default function App() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <AuthView
+        onAuthenticated={handleAuthenticated}
+        error={authError}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <Navbar
@@ -81,6 +131,8 @@ export default function App() {
         onOpenNewWorkspace={() => setShowWorkspaceModal(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -119,3 +171,4 @@ export default function App() {
     </div>
   );
 }
+
