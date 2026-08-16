@@ -1,4 +1,11 @@
+import { Request } from 'express';
+
 export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export interface AppRequest extends Request {
+  user?: User;
+  workspaceId?: string;
+}
 
 export interface User {
   uid: string;
@@ -334,5 +341,336 @@ export interface RoadmapLineage {
   evidences: Evidence[];
   researches: Research[];
 }
+
+// ETAPA A: Strategic Objectives & KRs
+export interface Objective {
+  id: string;
+  workspace_id: string;
+  title: string;
+  description?: string;
+  timeframe: string;
+  status: 'active' | 'completed' | 'cancelled' | 'draft';
+  progress: number;
+  owner_name?: string;
+  created_at: string;
+  updated_at: string;
+  key_results?: KeyResult[];
+  linked_opportunities_count?: number;
+  linked_roadmaps_count?: number;
+}
+
+export interface CreateObjectiveInput {
+  title: string;
+  description?: string;
+  timeframe?: string;
+  status?: 'active' | 'completed' | 'cancelled' | 'draft';
+  progress?: number;
+  owner_name?: string;
+}
+
+export interface UpdateObjectiveInput {
+  title?: string;
+  description?: string;
+  timeframe?: string;
+  status?: 'active' | 'completed' | 'cancelled' | 'draft';
+  progress?: number;
+  owner_name?: string;
+}
+
+export interface KeyResult {
+  id: string;
+  workspace_id: string;
+  objective_id: string;
+  title: string;
+  metric_name: string;
+  initial_value: number;
+  target_value: number;
+  current_value: number;
+  unit: string;
+  progress: number;
+  status: 'on_track' | 'at_risk' | 'behind' | 'achieved';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateKeyResultInput {
+  objective_id: string;
+  title: string;
+  metric_name: string;
+  initial_value?: number;
+  target_value: number;
+  current_value?: number;
+  unit?: string;
+  status?: 'on_track' | 'at_risk' | 'behind' | 'achieved';
+}
+
+export interface UpdateKeyResultInput {
+  title?: string;
+  metric_name?: string;
+  initial_value?: number;
+  target_value?: number;
+  current_value?: number;
+  unit?: string;
+  status?: 'on_track' | 'at_risk' | 'behind' | 'achieved';
+}
+
+// ETAPA B: Prioritization Evaluations
+export type PrioritizationFramework = 'rice' | 'ice' | 'wsjf' | 'value_effort' | 'impact_effort' | 'moscow' | 'kano';
+
+export interface Prioritization {
+  id: string;
+  workspace_id: string;
+  opportunity_id: string;
+  framework: PrioritizationFramework;
+  reach?: number;
+  impact?: number;
+  confidence?: number;
+  effort?: number;
+  ice_impact?: number;
+  ice_confidence?: number;
+  ice_ease?: number;
+  user_business_value?: number;
+  time_criticality?: number;
+  risk_reduction?: number;
+  job_size?: number;
+  score: number;
+  notes?: string;
+  evaluator_name?: string;
+  created_at: string;
+  updated_at: string;
+  opportunity_title?: string;
+}
+
+export interface CreatePrioritizationInput {
+  opportunity_id: string;
+  framework: PrioritizationFramework;
+  reach?: number;
+  impact?: number;
+  confidence?: number;
+  effort?: number;
+  ice_impact?: number;
+  ice_confidence?: number;
+  ice_ease?: number;
+  user_business_value?: number;
+  time_criticality?: number;
+  risk_reduction?: number;
+  job_size?: number;
+  notes?: string;
+  evaluator_name?: string;
+}
+
+// ETAPA C: Personas & Customer Segments
+export interface Persona {
+  id: string;
+  workspace_id: string;
+  name: string;
+  role_title: string;
+  segment?: string;
+  description?: string;
+  jobs_to_be_done?: string[];
+  pains?: string[];
+  goals?: string[];
+  behaviors?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePersonaInput {
+  name: string;
+  role_title: string;
+  segment?: string;
+  description?: string;
+  jobs_to_be_done?: string[];
+  pains?: string[];
+  goals?: string[];
+  behaviors?: string[];
+}
+
+export interface CustomerSegment {
+  id: string;
+  workspace_id: string;
+  name: string;
+  type: 'b2b' | 'b2c' | 'enterprise' | 'smb';
+  description?: string;
+  criteria?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCustomerSegmentInput {
+  name: string;
+  type: 'b2b' | 'b2c' | 'enterprise' | 'smb';
+  description?: string;
+  criteria?: string[];
+}
+
+export interface EntityPersonaLink {
+  id: string;
+  workspace_id: string;
+  persona_id: string;
+  entity_type: 'research' | 'evidence' | 'problem' | 'opportunity' | 'hypothesis' | 'decision';
+  entity_id: string;
+  created_at: string;
+}
+
+// ETAPA D: PRDs & User Stories
+export interface UserStory {
+  id: string;
+  asA: string;
+  iWant: string;
+  soThat: string;
+  acceptanceCriteria: string[];
+  status: 'backlog' | 'in_progress' | 'done';
+}
+
+export interface PRD {
+  id: string;
+  workspace_id: string;
+  roadmap_item_id?: string;
+  title: string;
+  summary?: string;
+  problem_statement?: string;
+  goals?: string[];
+  non_goals?: string[];
+  user_stories?: UserStory[];
+  technical_notes?: string;
+  dependencies?: string[];
+  definition_of_done?: string[];
+  status: 'draft' | 'in_review' | 'approved' | 'in_delivery' | 'delivered';
+  version: number;
+  created_at: string;
+  updated_at: string;
+  roadmap_title?: string;
+}
+
+export interface CreatePRDInput {
+  roadmap_item_id?: string;
+  title: string;
+  summary?: string;
+  problem_statement?: string;
+  goals?: string[];
+  non_goals?: string[];
+  user_stories?: UserStory[];
+  technical_notes?: string;
+  dependencies?: string[];
+  definition_of_done?: string[];
+  status?: 'draft' | 'in_review' | 'approved' | 'in_delivery' | 'delivered';
+}
+
+export interface UpdatePRDInput {
+  title?: string;
+  summary?: string;
+  problem_statement?: string;
+  goals?: string[];
+  non_goals?: string[];
+  user_stories?: UserStory[];
+  technical_notes?: string;
+  dependencies?: string[];
+  definition_of_done?: string[];
+  status?: 'draft' | 'in_review' | 'approved' | 'in_delivery' | 'delivered';
+  version?: number;
+}
+
+// ETAPA E: Outcome Tracking & Reviews
+export interface OutcomeReview {
+  id: string;
+  workspace_id: string;
+  roadmap_item_id?: string;
+  prd_id?: string;
+  title: string;
+  metric_name: string;
+  baseline_value: string;
+  target_value: string;
+  actual_value: string;
+  timeframe_days: number;
+  status: 'on_target' | 'below_target' | 'exceeded' | 'inconclusive';
+  what_we_expected?: string;
+  what_happened?: string;
+  what_we_learned?: string;
+  next_actions?: string;
+  refeed_to_discovery?: boolean;
+  new_problem_id?: string;
+  reviewed_at: string;
+  created_at: string;
+  updated_at: string;
+  roadmap_title?: string;
+}
+
+export interface CreateOutcomeReviewInput {
+  roadmap_item_id?: string;
+  prd_id?: string;
+  title: string;
+  metric_name: string;
+  baseline_value: string;
+  target_value: string;
+  actual_value: string;
+  timeframe_days?: number;
+  status?: 'on_target' | 'below_target' | 'exceeded' | 'inconclusive';
+  what_we_expected?: string;
+  what_happened?: string;
+  what_we_learned?: string;
+  next_actions?: string;
+  refeed_to_discovery?: boolean;
+}
+
+// ETAPA F: Collaboration & Activity
+export interface Comment {
+  id: string;
+  workspace_id: string;
+  entity_type: string;
+  entity_id: string;
+  author_id: string;
+  author_name: string;
+  author_email: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCommentInput {
+  entity_type: string;
+  entity_id: string;
+  content: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  workspace_id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor_id: string;
+  actor_name: string;
+  actor_email: string;
+  details?: Record<string, any>;
+  created_at: string;
+}
+
+// ETAPA G: Toolkit Canvases
+export interface ToolkitCanvas {
+  id: string;
+  workspace_id: string;
+  tool_key: string;
+  title: string;
+  entity_type?: string;
+  entity_id?: string;
+  canvas_data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateToolkitCanvasInput {
+  tool_key: string;
+  title: string;
+  entity_type?: string;
+  entity_id?: string;
+  canvas_data: Record<string, any>;
+}
+
+export interface UpdateToolkitCanvasInput {
+  title?: string;
+  canvas_data?: Record<string, any>;
+}
+
 
 

@@ -279,6 +279,8 @@ export const roadmapItems = pgTable('roadmap_items', {
   targetQuarter: varchar('target_quarter', { length: 50 }),
   decisionId: uuid('decision_id'),
   opportunityId: uuid('opportunity_id'),
+  objectiveId: uuid('objective_id'),
+  krId: uuid('kr_id'),
   metricsTarget: text('metrics_target'),
   progress: integer('progress').default(0).notNull(),
   ownerName: varchar('owner_name', { length: 255 }),
@@ -304,6 +306,292 @@ export const roadmapItems = pgTable('roadmap_items', {
     decisionIdx: index('idx_roadmap_items_decision').on(table.decisionId),
     opportunityIdx: index('idx_roadmap_items_opportunity').on(table.opportunityId),
     timeframeIdx: index('idx_roadmap_items_timeframe').on(table.workspaceId, table.timeframe),
+  };
+});
+
+// ETAPA A: Strategic Objectives table
+export const objectives = pgTable('objectives', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  timeframe: varchar('timeframe', { length: 50 }).notNull().default('Q1-2026'),
+  status: varchar('status', { length: 50 }).notNull().default('active'),
+  progress: integer('progress').default(0).notNull(),
+  ownerName: varchar('owner_name', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_objectives_workspace').on(table.workspaceId),
+  };
+});
+
+// Key Results (KRs)
+export const keyResults = pgTable('key_results', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  objectiveId: uuid('objective_id').notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  metricName: varchar('metric_name', { length: 255 }).notNull(),
+  initialValue: integer('initial_value').notNull().default(0),
+  targetValue: integer('target_value').notNull(),
+  currentValue: integer('current_value').notNull().default(0),
+  unit: varchar('unit', { length: 50 }).notNull().default('%'),
+  progress: integer('progress').default(0).notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('on_track'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    objectiveFk: foreignKey({
+      columns: [table.objectiveId, table.workspaceId],
+      foreignColumns: [objectives.id, objectives.workspaceId],
+      name: 'fk_kr_objective_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_kr_workspace').on(table.workspaceId),
+    objectiveIdx: index('idx_kr_objective').on(table.objectiveId),
+  };
+});
+
+// Opportunity to Objective / KR links
+export const opportunityObjectives = pgTable('opportunity_objectives', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  opportunityId: uuid('opportunity_id').notNull(),
+  objectiveId: uuid('objective_id').notNull(),
+  krId: uuid('kr_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    opportunityFk: foreignKey({
+      columns: [table.opportunityId, table.workspaceId],
+      foreignColumns: [opportunities.id, opportunities.workspaceId],
+      name: 'fk_opp_obj_opportunity_workspace',
+    }).onDelete('cascade'),
+    objectiveFk: foreignKey({
+      columns: [table.objectiveId, table.workspaceId],
+      foreignColumns: [objectives.id, objectives.workspaceId],
+      name: 'fk_opp_obj_objective_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_opp_obj_workspace').on(table.workspaceId),
+  };
+});
+
+// ETAPA B: Product Prioritization Evaluations
+export const prioritizations = pgTable('prioritizations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  opportunityId: uuid('opportunity_id').notNull(),
+  framework: varchar('framework', { length: 50 }).notNull().default('rice'),
+  // RICE factors
+  reach: integer('reach').default(100),
+  impact: integer('impact').default(3), // 1-5
+  confidence: integer('confidence').default(80), // 0-100%
+  effort: integer('effort').default(3), // 1-5
+  // ICE factors
+  iceImpact: integer('ice_impact').default(7), // 1-10
+  iceConfidence: integer('ice_confidence').default(7), // 1-10
+  iceEase: integer('ice_ease').default(7), // 1-10
+  // WSJF factors
+  userBusinessValue: integer('user_business_value').default(5), // 1-10
+  timeCriticality: integer('time_criticality').default(5), // 1-10
+  riskReduction: integer('risk_reduction').default(5), // 1-10
+  jobSize: integer('job_size').default(3), // 1-10
+  score: integer('score').notNull().default(0),
+  notes: text('notes'),
+  evaluatorName: varchar('evaluator_name', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    opportunityFk: foreignKey({
+      columns: [table.opportunityId, table.workspaceId],
+      foreignColumns: [opportunities.id, opportunities.workspaceId],
+      name: 'fk_prioritization_opportunity_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_prioritizations_workspace').on(table.workspaceId),
+    opportunityIdx: index('idx_prioritizations_opportunity').on(table.opportunityId),
+  };
+});
+
+// ETAPA C: Personas & Customer Segments
+export const personas = pgTable('personas', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  roleTitle: varchar('role_title', { length: 255 }).notNull(),
+  segment: varchar('segment', { length: 255 }),
+  description: text('description'),
+  jobsToBeDone: jsonb('jobs_to_be_done').$type<string[]>(),
+  pains: jsonb('pains').$type<string[]>(),
+  goals: jsonb('goals').$type<string[]>(),
+  behaviors: jsonb('behaviors').$type<string[]>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_personas_workspace').on(table.workspaceId),
+  };
+});
+
+export const customerSegments = pgTable('customer_segments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: varchar('type', { length: 50 }).notNull().default('b2b'), // b2b, b2c, enterprise, smb
+  description: text('description'),
+  criteria: jsonb('criteria').$type<string[]>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_customer_segments_workspace').on(table.workspaceId),
+  };
+});
+
+// Entity Persona Links (Link personas to researches, problems, opportunities, etc.)
+export const entityPersonas = pgTable('entity_personas', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  personaId: uuid('persona_id').notNull(),
+  entityType: varchar('entity_type', { length: 50 }).notNull(), // research, evidence, problem, opportunity, hypothesis, decision
+  entityId: uuid('entity_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    personaFk: foreignKey({
+      columns: [table.personaId, table.workspaceId],
+      foreignColumns: [personas.id, personas.workspaceId],
+      name: 'fk_entity_personas_persona_workspace',
+    }).onDelete('cascade'),
+    workspaceIdx: index('idx_entity_personas_workspace').on(table.workspaceId),
+    entityIdx: index('idx_entity_personas_entity').on(table.entityType, table.entityId),
+  };
+});
+
+// ETAPA D: PRDs, User Stories & Acceptance Criteria
+export const prds = pgTable('prds', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  roadmapItemId: uuid('roadmap_item_id'),
+  title: varchar('title', { length: 255 }).notNull(),
+  summary: text('summary'),
+  problemStatement: text('problem_statement'),
+  goals: jsonb('goals').$type<string[]>(),
+  nonGoals: jsonb('non_goals').$type<string[]>(),
+  userStories: jsonb('user_stories').$type<Array<{
+    id: string;
+    asA: string;
+    iWant: string;
+    soThat: string;
+    acceptanceCriteria: string[];
+    status: 'backlog' | 'in_progress' | 'done';
+  }>>(),
+  technicalNotes: text('technical_notes'),
+  dependencies: jsonb('dependencies').$type<string[]>(),
+  definitionOfDone: jsonb('definition_of_done').$type<string[]>(),
+  status: varchar('status', { length: 50 }).notNull().default('draft'), // draft, in_review, approved, in_delivery, delivered
+  version: integer('version').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    roadmapFk: foreignKey({
+      columns: [table.roadmapItemId, table.workspaceId],
+      foreignColumns: [roadmapItems.id, roadmapItems.workspaceId],
+      name: 'fk_prd_roadmap_workspace',
+    }).onDelete('set null'),
+    workspaceIdx: index('idx_prds_workspace').on(table.workspaceId),
+    roadmapIdx: index('idx_prds_roadmap').on(table.roadmapItemId),
+  };
+});
+
+// ETAPA E: Outcome Tracking & Post-Launch Reviews
+export const outcomeReviews = pgTable('outcome_reviews', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  roadmapItemId: uuid('roadmap_item_id'),
+  prdId: uuid('prd_id'),
+  title: varchar('title', { length: 255 }).notNull(),
+  metricName: varchar('metric_name', { length: 255 }).notNull(),
+  baselineValue: varchar('baseline_value', { length: 100 }).notNull(),
+  targetValue: varchar('target_value', { length: 100 }).notNull(),
+  actualValue: varchar('actual_value', { length: 100 }).notNull(),
+  timeframeDays: integer('timeframe_days').notNull().default(30), // 30, 60, 90, 180
+  status: varchar('status', { length: 50 }).notNull().default('on_target'), // on_target, below_target, exceeded, inconclusive
+  whatWeExpected: text('what_we_expected'),
+  whatHappened: text('what_happened'),
+  whatWeLearned: text('what_we_learned'),
+  nextActions: text('next_actions'),
+  refeedToDiscovery: integer('refeed_to_discovery').default(0), // 0: false, 1: true
+  newProblemId: uuid('new_problem_id'),
+  reviewedAt: timestamp('reviewed_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    roadmapFk: foreignKey({
+      columns: [table.roadmapItemId, table.workspaceId],
+      foreignColumns: [roadmapItems.id, roadmapItems.workspaceId],
+      name: 'fk_outcome_roadmap_workspace',
+    }).onDelete('set null'),
+    workspaceIdx: index('idx_outcome_reviews_workspace').on(table.workspaceId),
+  };
+});
+
+// ETAPA F: Collaboration & Activity Timeline
+export const comments = pgTable('comments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  entityType: varchar('entity_type', { length: 50 }).notNull(),
+  entityId: uuid('entity_id').notNull(),
+  authorId: varchar('author_id', { length: 255 }).notNull(),
+  authorName: varchar('author_name', { length: 255 }).notNull(),
+  authorEmail: varchar('author_email', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_comments_workspace').on(table.workspaceId),
+    entityIdx: index('idx_comments_entity').on(table.entityType, table.entityId),
+  };
+});
+
+export const activityLogs = pgTable('activity_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  entityType: varchar('entity_type', { length: 50 }).notNull(),
+  entityId: uuid('entity_id').notNull(),
+  action: varchar('action', { length: 50 }).notNull(), // created, updated, status_changed, deleted, prioritized, delivered
+  actorId: varchar('actor_id', { length: 255 }).notNull(),
+  actorName: varchar('actor_name', { length: 255 }).notNull(),
+  actorEmail: varchar('actor_email', { length: 255 }).notNull(),
+  details: jsonb('details').$type<Record<string, any>>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_activity_logs_workspace').on(table.workspaceId),
+    entityIdx: index('idx_activity_logs_entity').on(table.entityType, table.entityId),
+  };
+});
+
+// ETAPA G: Product Toolkit Canvases
+export const toolkitCanvases = pgTable('toolkit_canvases', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  toolKey: varchar('tool_key', { length: 100 }).notNull(), // problem_statement, ost, assumption_mapping, lean_canvas, etc.
+  title: varchar('title', { length: 255 }).notNull(),
+  entityType: varchar('entity_type', { length: 50 }),
+  entityId: uuid('entity_id'),
+  canvasData: jsonb('canvas_data').$type<Record<string, any>>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceIdx: index('idx_toolkit_canvases_workspace').on(table.workspaceId),
+    toolKeyIdx: index('idx_toolkit_canvases_tool_key').on(table.workspaceId, table.toolKey),
   };
 });
 

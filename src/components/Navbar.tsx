@@ -12,9 +12,13 @@ import {
   Compass,
   FolderKanban, 
   Plus,
-  Sparkles,
   LogOut,
-  User
+  LayoutDashboard,
+  Target,
+  Calculator,
+  Users,
+  TrendingUp,
+  LayoutGrid
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -39,15 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
 }) => {
   const tabs = [
+    { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+    { id: 'strategy', label: 'Estratégia & OKRs', icon: Target },
     { id: 'research', label: '1. Pesquisa', icon: Search },
     { id: 'evidence', label: '2. Evidências', icon: FileText },
+    { id: 'personas', label: 'Personas & Segmentos', icon: Users },
     { id: 'problem', label: '3. Problemas', icon: AlertCircle },
     { id: 'opportunity', label: '4. Oportunidades', icon: Lightbulb },
+    { id: 'prioritization', label: 'Priorização RICE', icon: Calculator },
     { id: 'hypothesis', label: '5. Hipóteses', icon: GitCommit },
     { id: 'experiment', label: '6. Experimentos', icon: FlaskConical },
     { id: 'decision', label: '7. Decisões', icon: CheckCircle2 },
-    { id: 'intelligence', label: '8. Inteligência do Produto', icon: BrainCircuit, badge: 'Etapa 7' },
-    { id: 'roadmap', label: '9. Roadmap & Entregas', icon: Compass, badge: 'Etapa 8', highlight: true },
+    { id: 'intelligence', label: '8. Inteligência IA', icon: BrainCircuit, badge: 'IA' },
+    { id: 'roadmap', label: '9. Roadmap', icon: Compass, highlight: true },
+    { id: 'prd', label: 'PRDs & User Stories', icon: FileText },
+    { id: 'outcomes', label: 'Pós-Lançamento', icon: TrendingUp },
+    { id: 'toolkit', label: 'Product Toolkit', icon: LayoutGrid },
   ];
 
 

@@ -2,15 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Workspace, User } from './types';
 import { apiFetch, getAuthToken, clearAuthToken } from './lib/api';
 import { Navbar } from './components/Navbar';
+import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
+import { StrategyView } from './components/StrategyView';
 import { ResearchView } from './components/ResearchView';
 import { EvidenceView } from './components/EvidenceView';
+import { PersonasView } from './components/PersonasView';
 import { ProblemView } from './components/ProblemView';
 import { OpportunityView } from './components/OpportunityView';
+import { PrioritizationView } from './components/PrioritizationView';
 import { HypothesisView } from './components/HypothesisView';
 import { ExperimentView } from './components/ExperimentView';
 import { DecisionView } from './components/DecisionView';
 import { IntelligenceView } from './components/IntelligenceView';
 import { RoadmapView } from './components/RoadmapView';
+import { PRDView } from './components/PRDView';
+import { OutcomeReviewView } from './components/OutcomeReviewView';
+import { ToolkitView } from './components/ToolkitView';
 import { WorkspaceModal } from './components/WorkspaceModal';
 
 import { AuthView } from './components/AuthView';
@@ -21,7 +28,7 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
-  const [activeTab, setActiveTab] = useState('intelligence'); // Default to Etapa 7: Inteligência do Produto
+  const [activeTab, setActiveTab] = useState('dashboard'); // Default to Executive Dashboard
   const [loading, setLoading] = useState(true);
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
@@ -140,10 +147,19 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentWorkspace ? (
           <>
+            {activeTab === 'dashboard' && (
+              <ExecutiveDashboardView
+                workspaceId={currentWorkspace.id}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
+            {activeTab === 'strategy' && <StrategyView workspaceId={currentWorkspace.id} />}
             {activeTab === 'research' && <ResearchView workspaceId={currentWorkspace.id} />}
             {activeTab === 'evidence' && <EvidenceView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'personas' && <PersonasView workspaceId={currentWorkspace.id} />}
             {activeTab === 'problem' && <ProblemView workspaceId={currentWorkspace.id} />}
             {activeTab === 'opportunity' && <OpportunityView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'prioritization' && <PrioritizationView workspaceId={currentWorkspace.id} />}
             {activeTab === 'hypothesis' && <HypothesisView workspaceId={currentWorkspace.id} />}
             {activeTab === 'experiment' && <ExperimentView workspaceId={currentWorkspace.id} />}
             {activeTab === 'decision' && <DecisionView workspaceId={currentWorkspace.id} />}
@@ -154,8 +170,10 @@ export default function App() {
               />
             )}
             {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'prd' && <PRDView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'outcomes' && <OutcomeReviewView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'toolkit' && <ToolkitView workspaceId={currentWorkspace.id} />}
           </>
-
         ) : (
           <div className="text-center py-20 text-slate-400 text-sm">
             Nenhum workspace selecionado. Crie ou selecione um workspace para iniciar.

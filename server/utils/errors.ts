@@ -1,9 +1,11 @@
 import { Response } from 'express';
 
 export class BusinessRuleError extends Error {
-  constructor(message: string) {
+  public statusCode: number;
+  constructor(message: string, statusCode: number = 400) {
     super(message);
     this.name = 'BusinessRuleError';
+    this.statusCode = statusCode;
   }
 }
 

@@ -15,7 +15,15 @@ import { experimentRouter } from './server/routes/experiment.routes.js';
 import { decisionRouter } from './server/routes/decision.routes.js';
 import { roadmapRouter } from './server/routes/roadmap.routes.js';
 import { intelligenceRouter } from './server/routes/intelligence.routes.js';
-
+import { devAdminRouter } from './server/routes/devAdmin.routes.js';
+import { strategyRouter } from './server/routes/strategy.routes.js';
+import { prioritizationRouter } from './server/routes/prioritization.routes.js';
+import { personasRouter } from './server/routes/personas.routes.js';
+import { prdRouter } from './server/routes/prd.routes.js';
+import { outcomeRouter } from './server/routes/outcome.routes.js';
+import { collaborationRouter } from './server/routes/collaboration.routes.js';
+import { toolkitRouter } from './server/routes/toolkit.routes.js';
+import { dashboardRouter } from './server/routes/dashboard.routes.js';
 
 async function startServer() {
   // In production, DATABASE_URL must be strictly set
@@ -49,6 +57,7 @@ async function startServer() {
   // Mount API Routes
   app.use('/api', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/dev-admin', devAdminRouter);
   app.use('/api/workspaces', workspaceRouter);
   app.use('/api/researches', researchRouter);
   app.use('/api/evidences', evidenceRouter);
@@ -58,6 +67,14 @@ async function startServer() {
   app.use('/api/experiments', experimentRouter);
   app.use('/api/decisions', decisionRouter);
   app.use('/api/roadmap', roadmapRouter);
+  app.use('/api/strategy', strategyRouter);
+  app.use('/api/prioritization', prioritizationRouter);
+  app.use('/api/personas', personasRouter);
+  app.use('/api/prds', prdRouter);
+  app.use('/api/outcomes', outcomeRouter);
+  app.use('/api/collaboration', collaborationRouter);
+  app.use('/api/toolkit', toolkitRouter);
+  app.use('/api/dashboard', dashboardRouter);
   app.use('/api/workspaces/:workspaceId/intelligence', intelligenceRouter);
 
 

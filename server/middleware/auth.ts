@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../../src/lib/firebase-admin.js';
 import { dbStore } from '../db/store.js';
 import { WorkspaceRole } from '../types/index.js';
+import { getDevAdminSession } from '../routes/devAdmin.routes.js';
 
 declare global {
   namespace Express {
@@ -20,7 +21,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   const authHeader = req.headers.authorization;
 
   // Mock auth is ONLY allowed when NODE_ENV === 'test' AND ALLOW_DEV_MOCK_AUTH === 'true'
-  // In development, staging, and production, real Firebase Bearer JWT is strictly required.
+  // In development, staging, and production, real Firebase Bearer JWT or verified DevAdmin Session is strictly required.
   const isMockAuthAllowed =
     process.env.NODE_ENV === 'test' &&
     process.env.ALLOW_DEV_MOCK_AUTH === 'true';
@@ -49,6 +50,18 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       email: String(req.headers['x-test-user-email'] || 'demo@productos.io'),
     };
     return next();
+  }
+
+  // Check DEV ADMIN ephemeral session (strictly available if NODE_ENV === 'development' or 'test', AND ALLOW_DEV_ADMIN === 'true')
+  if (token && token.startsWith('dev_admin_')) {
+    const devSession = getDevAdminSession(token);
+    if (devSession) {
+      req.user = {
+        uid: devSession.uid,
+        email: devSession.email,
+      };
+      return next();
+    }
   }
 
   // Real Firebase ID Token verification
