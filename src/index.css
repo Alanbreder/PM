@@ -1,7 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  --color-military-50: #f2f5f0;
+  --color-military-100: #e1e9dc;
+  --color-military-200: #c3d4ba;
+  --color-military-300: #9eb891;
+  --color-military-400: #789968;
+  --color-military-500: #557a4a;
+  --color-military-600: #426139;
+  --color-military-700: #344c2c;
+  --color-military-800: #273822;
+  --color-military-900: #1b2618;
+  --color-military-950: #0d140b;
+}
+
 @layer base {
   body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #0a0a0a;
+    color: #f4f4f5;
   }
 }
+

@@ -172,45 +172,45 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
   };
 
   return (
-    <div id="auth-view-container" className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
+    <div id="auth-view-container" className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
         
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-military-900/60 border border-military-700/50 flex items-center justify-center text-military-400 mx-auto shadow-inner">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Product OS Discovery Engine</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-xl font-bold tracking-tight text-zinc-100">Product OS Discovery Engine</h1>
+          <p className="text-xs text-zinc-400">
             Autenticação Segura & Gestão Multi-Tenant
           </p>
         </div>
 
         {/* DEV ADMIN BANNER (Rendered ONLY if NODE_ENV=development and ALLOW_DEV_ADMIN=true) */}
         {devAdminAvailable && (
-          <div id="dev-admin-container" className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-2">
+          <div id="dev-admin-container" className="p-3.5 rounded-lg bg-military-900/60 border border-military-700/60 space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-amber-400 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 text-military-300 text-xs font-semibold">
                 <Terminal className="w-3.5 h-3.5" />
                 <span>Modo de Desenvolvimento Ativo</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-military-800 text-military-200 border border-military-600/50 font-mono">
                 DEV ADMIN
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Acesso administrativo local habilitado via variável de ambiente (<code className="text-amber-300 font-mono">ALLOW_DEV_ADMIN=true</code>).
+            <p className="text-[11px] text-zinc-300 leading-relaxed">
+              Acesso administrativo local habilitado via variável de ambiente (<code className="text-military-300 font-mono">ALLOW_DEV_ADMIN=true</code>).
             </p>
             {devAdminRequiresKey && (
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-amber-300">Chave de Acesso (DEV_ADMIN_KEY)</label>
+                <label className="text-[11px] font-medium text-military-300">Chave de Acesso (DEV_ADMIN_KEY)</label>
                 <input
                   id="input-dev-admin-key"
                   type="password"
                   value={devAdminKeyInput}
                   onChange={(e) => setDevAdminKeyInput(e.target.value)}
                   placeholder="Insira a chave DEV_ADMIN_KEY"
-                  className="w-full bg-slate-950 border border-amber-500/30 rounded px-2.5 py-1.5 text-xs text-amber-200 placeholder:text-amber-500/50 focus:outline-none focus:border-amber-400 font-mono"
+                  className="w-full bg-zinc-950 border border-military-700/50 rounded px-2.5 py-1.5 text-xs text-military-200 placeholder:text-military-500/50 focus:outline-none focus:border-military-400 font-mono"
                 />
               </div>
             )}
@@ -219,7 +219,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
               type="button"
               onClick={handleDevAdminLogin}
               disabled={devAdminLoading}
-              className="w-full py-2 px-3 rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
+              className="w-full py-2 px-3 rounded-md bg-military-600 hover:bg-military-500 active:bg-military-700 disabled:opacity-50 text-zinc-100 text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
             >
               {devAdminLoading ? (
                 <>
@@ -237,15 +237,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
         )}
 
         {/* Mode Selector Tabs */}
-        <div className="flex border-b border-slate-800 text-xs">
+        <div className="flex border-b border-zinc-800 text-xs">
           <button
             id="tab-login"
             type="button"
             onClick={() => { setMode('login'); setErrorMsg(null); }}
             className={`flex-1 py-2.5 font-medium border-b-2 transition flex items-center justify-center gap-1.5 ${
               mode === 'login'
-                ? 'border-indigo-500 text-indigo-400 font-semibold'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-military-500 text-military-300 font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -257,8 +257,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
             onClick={() => { setMode('register'); setErrorMsg(null); }}
             className={`flex-1 py-2.5 font-medium border-b-2 transition flex items-center justify-center gap-1.5 ${
               mode === 'register'
-                ? 'border-indigo-500 text-indigo-400 font-semibold'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-military-500 text-military-300 font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
         <form onSubmit={handleAuthSubmit} className="space-y-4">
           {mode === 'register' && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-300">Nome Completo</label>
+              <label className="text-xs font-medium text-zinc-300">Nome Completo</label>
               <input
                 id="input-auth-name"
                 type="text"
@@ -286,15 +286,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-military-500 transition"
               />
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">Email Corporativo</label>
+            <label className="text-xs font-medium text-zinc-300">Email Corporativo</label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+              <Mail className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
               <input
                 id="input-auth-email"
                 type="email"
@@ -302,15 +302,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="usuario@empresa.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-military-500 transition"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">Senha</label>
+            <label className="text-xs font-medium text-zinc-300">Senha</label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+              <Lock className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
               <input
                 id="input-auth-password"
                 type="password"
@@ -318,7 +318,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-military-500 transition"
               />
             </div>
           </div>
@@ -327,7 +327,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
             id="btn-auth-submit"
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-md shadow-indigo-950/40 mt-2"
+            className="w-full py-2.5 px-4 rounded-lg bg-military-600 hover:bg-military-500 active:bg-military-700 disabled:opacity-50 text-zinc-100 text-xs font-semibold flex items-center justify-center gap-2 transition shadow-md shadow-black/40 mt-2"
           >
             {loading ? (
               <>
@@ -344,7 +344,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, error: init
         </form>
 
         {/* Footer info */}
-        <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-500 text-center leading-relaxed">
+        <div className="pt-2 border-t border-zinc-800/80 text-[11px] text-zinc-500 text-center leading-relaxed">
           Autenticação criptograficamente assinada por tokens ID Firebase. Isolamento multi-tenant estrito por Workspace.
         </div>
 

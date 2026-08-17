@@ -2204,8 +2204,19 @@ export class MemoryStore {
   // ==========================================
   // ETAPA G: Product Toolkit Canvases
   // ==========================================
-  async listToolkitCanvases(workspaceId: string): Promise<ToolkitCanvas[]> {
-    return (this.data.toolkitCanvases || []).filter((c) => c.workspace_id === workspaceId);
+  async listToolkitCanvases(workspaceId: string, toolKey?: string): Promise<ToolkitCanvas[]> {
+    let list = (this.data.toolkitCanvases || []).filter((c) => c.workspace_id === workspaceId);
+    if (toolKey) {
+      list = list.filter((c) => c.tool_key === toolKey);
+    }
+    return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  }
+
+  async getToolkitCanvasById(workspaceId: string, id: string): Promise<ToolkitCanvas | null> {
+    const item = (this.data.toolkitCanvases || []).find(
+      (c) => c.workspace_id === workspaceId && c.id === id
+    );
+    return item || null;
   }
 
   async getToolkitCanvasByKey(
@@ -2228,18 +2239,29 @@ export class MemoryStore {
   ): Promise<ToolkitCanvas> {
     if (!this.data.toolkitCanvases) this.data.toolkitCanvases = [];
     const now = new Date().toISOString();
-    const existingIdx = this.data.toolkitCanvases.findIndex(
-      (c) =>
-        c.workspace_id === workspaceId &&
-        c.tool_key === input.tool_key &&
-        (input.entity_id ? c.entity_id === input.entity_id : true)
-    );
+
+    let existingIdx = -1;
+    if (input.id) {
+      existingIdx = this.data.toolkitCanvases.findIndex(
+        (c) => c.workspace_id === workspaceId && c.id === input.id
+      );
+    } else {
+      existingIdx = this.data.toolkitCanvases.findIndex(
+        (c) =>
+          c.workspace_id === workspaceId &&
+          c.tool_key === input.tool_key &&
+          (input.entity_id ? c.entity_id === input.entity_id : true)
+      );
+    }
 
     if (existingIdx !== -1) {
+      const current = this.data.toolkitCanvases[existingIdx];
       const updated: ToolkitCanvas = {
-        ...this.data.toolkitCanvases[existingIdx],
-        title: input.title,
-        canvas_data: input.canvas_data,
+        ...current,
+        title: input.title || current.title,
+        entity_type: input.entity_type !== undefined ? input.entity_type : current.entity_type,
+        entity_id: input.entity_id !== undefined ? input.entity_id : current.entity_id,
+        canvas_data: input.canvas_data || current.canvas_data,
         updated_at: now,
       };
       this.data.toolkitCanvases[existingIdx] = updated;
@@ -2248,19 +2270,52 @@ export class MemoryStore {
     }
 
     const newCanvas: ToolkitCanvas = {
-      id: randomUUID(),
+      id: input.id || randomUUID(),
       workspace_id: workspaceId,
       tool_key: input.tool_key,
       title: input.title,
       entity_type: input.entity_type,
       entity_id: input.entity_id,
-      canvas_data: input.canvas_data,
+      canvas_data: input.canvas_data || {},
       created_at: now,
       updated_at: now,
     };
     this.data.toolkitCanvases.push(newCanvas);
     this.saveToFile();
     return newCanvas;
+  }
+
+  async deleteToolkitCanvas(workspaceId: string, id: string): Promise<boolean> {
+    if (!this.data.toolkitCanvases) return false;
+    const initialLen = this.data.toolkitCanvases.length;
+    this.data.toolkitCanvases = this.data.toolkitCanvases.filter(
+      (c) => !(c.workspace_id === workspaceId && c.id === id)
+    );
+    const deleted = this.data.toolkitCanvases.length < initialLen;
+    if (deleted) this.saveToFile();
+    return deleted;
+  }
+
+  async duplicateToolkitCanvas(workspaceId: string, id: string): Promise<ToolkitCanvas | null> {
+    const original = await this.getToolkitCanvasById(workspaceId, id);
+    if (!original) return null;
+
+    const now = new Date().toISOString();
+    const duplicated: ToolkitCanvas = {
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      tool_key: original.tool_key,
+      title: `${original.title} (Cópia)`,
+      entity_type: original.entity_type,
+      entity_id: original.entity_id,
+      canvas_data: JSON.parse(JSON.stringify(original.canvas_data || {})),
+      created_at: now,
+      updated_at: now,
+    };
+
+    this.data.toolkitCanvases.push(duplicated);
+    this.saveToFile();
+    return duplicated;
   }
 
   // ==========================================

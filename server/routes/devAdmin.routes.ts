@@ -70,7 +70,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // 3. Local / Sandbox Environment Check
-    const ip = req.ip || req.socket.remoteAddress || '';
+    const ip = req.ip || req.socket?.remoteAddress || '';
     const isAllowedHost =
       ip === '127.0.0.1' ||
       ip === '::1' ||
@@ -78,10 +78,8 @@ router.post('/login', async (req: Request, res: Response) => {
       ip === 'localhost' ||
       req.hostname === 'localhost' ||
       req.hostname === '127.0.0.1' ||
-      req.hostname.endsWith('.run.app') ||
-      req.hostname.endsWith('.googleusercontent.com') ||
-      process.env.NODE_ENV === 'development' ||
-      process.env.NODE_ENV === 'test';
+      (req.hostname && req.hostname.endsWith('.run.app')) ||
+      (req.hostname && req.hostname.endsWith('.googleusercontent.com'));
 
     if (!isAllowedHost) {
       res.status(403).json({

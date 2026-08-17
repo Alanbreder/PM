@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "preview": "vite preview",
-    "test": "NODE_ENV=test tsx server/tests/security.test.ts && NODE_ENV=test tsx server/tests/intelligence.test.ts && NODE_ENV=test tsx server/tests/roadmap.test.ts"
+    "test": "NODE_ENV=test tsx server/tests/security.test.ts && NODE_ENV=test tsx server/tests/intelligence.test.ts && NODE_ENV=test tsx server/tests/roadmap.test.ts && NODE_ENV=test tsx server/tests/toolkit.test.ts"
 
   },
   "dependencies": {

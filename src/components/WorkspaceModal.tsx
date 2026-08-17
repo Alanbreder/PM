@@ -34,10 +34,10 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onCreat
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full text-slate-100 shadow-2xl">
-        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-          <FolderKanban className="w-5 h-5 text-indigo-400" />
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full text-zinc-100 shadow-2xl">
+        <h3 className="text-base font-bold text-zinc-100 mb-4 flex items-center gap-2">
+          <FolderKanban className="w-5 h-5 text-military-400" />
           Criar Novo Workspace
         </h3>
 
@@ -45,38 +45,38 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onCreat
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Nome do Workspace</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">Nome do Workspace</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Produto B2B SaaS"
               required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 outline-none focus:border-military-500"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Descrição</label>
+            <label className="block text-xs font-medium text-zinc-300 mb-1">Descrição</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Descreva o escopo e produto deste workspace..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 outline-none focus:border-military-500"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+              className="px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-100"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg"
+              className="px-4 py-2 bg-military-600 hover:bg-military-500 text-zinc-100 text-xs font-semibold rounded-lg shadow"
             >
               {submitting ? 'Criando...' : 'Criar Workspace'}
             </button>

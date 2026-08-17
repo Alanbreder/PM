@@ -63,41 +63,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-slate-100 sticky top-0 z-40 shadow-sm">
+    <header className="bg-zinc-950 border-b border-zinc-800 text-zinc-100 sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-b border-zinc-800/60">
           {/* Logo & Workspace Selector */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-sm">
+              <div className="w-8 h-8 rounded-md bg-military-600 flex items-center justify-center font-bold text-zinc-100 shadow-sm border border-military-500/40">
                 POS
               </div>
               <div>
-                <span className="font-bold text-base tracking-tight text-white block leading-none">Product OS</span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Discovery Engine</span>
+                <span className="font-bold text-base tracking-tight text-zinc-100 block leading-none">Product OS</span>
+                <span className="text-[10px] text-military-400 font-mono tracking-wider uppercase">Discovery Engine</span>
               </div>
             </div>
 
             {/* Workspace Select */}
-            <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-md border border-slate-700/60 text-xs">
-              <FolderKanban className="w-4 h-4 text-indigo-400" />
+            <div className="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-md border border-zinc-800 text-xs">
+              <FolderKanban className="w-4 h-4 text-military-400" />
               <select
                 value={currentWorkspace?.id || ''}
                 onChange={(e) => {
                   const ws = workspaces.find((w) => w.id === e.target.value);
                   if (ws) onSelectWorkspace(ws);
                 }}
-                className="bg-transparent font-medium text-slate-200 outline-none cursor-pointer pr-2"
+                className="bg-transparent font-medium text-zinc-200 outline-none cursor-pointer pr-2"
               >
                 {workspaces.map((ws) => (
-                  <option key={ws.id} value={ws.id} className="bg-slate-900 text-slate-200">
+                  <option key={ws.id} value={ws.id} className="bg-zinc-900 text-zinc-200">
                     {ws.name} ({ws.role})
                   </option>
                 ))}
               </select>
               <button
                 onClick={onOpenNewWorkspace}
-                className="text-slate-400 hover:text-white p-0.5 rounded hover:bg-slate-700 transition"
+                className="text-zinc-400 hover:text-military-300 p-0.5 rounded hover:bg-zinc-800 transition"
                 title="Novo Workspace"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -105,22 +105,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Quick status badge & User Profile / Logout */}
+          {/* Quick status badge, Cmd+K trigger & User Profile / Logout */}
           <div className="flex items-center gap-3 text-xs">
-            <div className="hidden md:flex items-center gap-2 text-slate-400">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+              }}
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition text-[11px]"
+              title="Pesquisar ferramentas ou fluxos (Cmd+K / Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-military-400" />
+              <span>Buscar...</span>
+              <kbd className="bg-zinc-800 text-zinc-300 font-mono text-[9px] px-1 py-0.5 rounded border border-zinc-700">
+                ⌘K
+              </kbd>
+            </button>
+
+            <div className="hidden md:flex items-center gap-2 text-zinc-400">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-military-900/80 text-military-300 border border-military-700/60 font-medium text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-military-400 animate-pulse"></span>
                 Ciclo Ativo
               </span>
             </div>
 
             {currentUser && (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+              <div className="flex items-center gap-2 pl-2 border-l border-zinc-800">
                 <div className="hidden sm:flex flex-col text-right">
-                  <span className="text-[11px] font-medium text-slate-200 leading-tight">
+                  <span className="text-[11px] font-medium text-zinc-200 leading-tight">
                     {currentUser.name || currentUser.email}
                   </span>
-                  <span className="text-[9px] text-slate-500 font-mono leading-tight">
+                  <span className="text-[9px] text-zinc-500 font-mono leading-tight">
                     {currentUser.email}
                   </span>
                 </div>
@@ -129,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     id="btn-logout"
                     onClick={onLogout}
                     title="Sair / Trocar de Conta"
-                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition"
+                    className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -139,8 +153,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Pipeline Navigation */}
-        <nav className="flex space-x-1 overflow-x-auto pb-2 scrollbar-none">
+        {/* Pipeline Navigation - Line wrapping enabled so it never overflows */}
+        <nav className="flex flex-wrap gap-1.5 py-2.5 w-full">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -148,25 +162,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md transition whitespace-nowrap border-b-2 ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition border ${
                   isActive
-                    ? 'bg-slate-800 text-white border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent'
-                } ${tab.highlight && !isActive ? 'text-amber-400 hover:text-amber-300' : ''}`}
+                    ? 'bg-military-800/90 text-military-200 border-military-600 shadow-sm font-semibold'
+                    : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/90 border-zinc-800/80'
+                }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : tab.highlight ? 'text-indigo-400' : 'text-slate-400'}`} />
-                {tab.label}
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-military-300' : 'text-zinc-500'}`} />
+                <span>{tab.label}</span>
                 {tab.badge && (
-                  <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded border ${
-                    tab.highlight 
-                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' 
-                      : 'bg-slate-700/50 text-slate-300 border-slate-600/40'
+                  <span className={`px-1.5 py-0.2 text-[9px] font-semibold rounded border ${
+                    isActive
+                      ? 'bg-military-700/60 text-military-200 border-military-500/40' 
+                      : 'bg-military-900/60 text-military-300 border-military-800/60'
                   }`}>
                     {tab.badge}
                   </span>
                 )}
               </button>
-
             );
           })}
         </nav>

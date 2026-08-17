@@ -19,6 +19,8 @@ import { PRDView } from './components/PRDView';
 import { OutcomeReviewView } from './components/OutcomeReviewView';
 import { ToolkitView } from './components/ToolkitView';
 import { WorkspaceModal } from './components/WorkspaceModal';
+import { CommandPalette } from './components/CommandPalette';
+import { ToolKey } from './types/tools';
 
 import { AuthView } from './components/AuthView';
 
@@ -31,6 +33,20 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to Executive Dashboard
   const [loading, setLoading] = useState(true);
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [toolkitInitialTool, setToolkitInitialTool] = useState<ToolKey | null>(null);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const initApp = useCallback(async (userOverride?: User) => {
     setLoading(true);
@@ -113,10 +129,10 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs text-slate-400 font-medium">Iniciando Product OS Engine...</p>
+          <div className="w-10 h-10 border-2 border-military-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs text-zinc-400 font-medium">Iniciando Product OS Engine...</p>
         </div>
       </div>
     );
@@ -132,7 +148,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
       <Navbar
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
@@ -172,10 +188,15 @@ export default function App() {
             {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} />}
             {activeTab === 'prd' && <PRDView workspaceId={currentWorkspace.id} />}
             {activeTab === 'outcomes' && <OutcomeReviewView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'toolkit' && <ToolkitView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'toolkit' && (
+              <ToolkitView
+                workspaceId={currentWorkspace.id}
+                initialToolKey={toolkitInitialTool}
+              />
+            )}
           </>
         ) : (
-          <div className="text-center py-20 text-slate-400 text-sm">
+          <div className="text-center py-20 text-zinc-400 text-sm">
             Nenhum workspace selecionado. Crie ou selecione um workspace para iniciar.
           </div>
         )}
@@ -190,6 +211,19 @@ export default function App() {
           }}
         />
       )}
+
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNavigateTab={(tab) => {
+          setToolkitInitialTool(null);
+          setActiveTab(tab);
+        }}
+        onOpenTool={(toolKey) => {
+          setToolkitInitialTool(toolKey);
+          setActiveTab('toolkit');
+        }}
+      />
     </div>
   );
 }

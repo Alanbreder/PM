@@ -213,6 +213,7 @@ export interface CreateDecisionInput {
   description?: string;
   decision: string;
   rationale?: string;
+  status?: 'pending' | 'accepted' | 'rejected' | 'pivoted';
 }
 
 // ETAPA 7: INTELIGÊNCIA DO PRODUTO
@@ -646,7 +647,28 @@ export interface ActivityLog {
   created_at: string;
 }
 
-// ETAPA G: Toolkit Canvases
+// ETAPA G: Toolkit Canvases & Product Tools
+export type ToolKey =
+  | 'product_canvas'
+  | 'product_vision_board'
+  | 'opportunity_solution_tree'
+  | 'personas'
+  | 'user_journey_map'
+  | 'jtbd'
+  | 'problem_statement'
+  | 'value_proposition_canvas'
+  | 'rice_prioritization'
+  | 'impact_effort_matrix'
+  | 'assumption_map'
+  | 'experiment_canvas'
+  | 'decision_canvas'
+  | 'story_map'
+  | 'lean_canvas'
+  | 'empathy_map'
+  | 'swot_analysis'
+  | 'customer_journey_map'
+  | 'story_mapping';
+
 export interface ToolkitCanvas {
   id: string;
   workspace_id: string;
@@ -660,6 +682,7 @@ export interface ToolkitCanvas {
 }
 
 export interface CreateToolkitCanvasInput {
+  id?: string;
   tool_key: string;
   title: string;
   entity_type?: string;
@@ -669,7 +692,27 @@ export interface CreateToolkitCanvasInput {
 
 export interface UpdateToolkitCanvasInput {
   title?: string;
+  entity_type?: string;
+  entity_id?: string;
   canvas_data?: Record<string, any>;
+}
+
+export interface AICoachEvaluation {
+  has_sufficient_data: boolean;
+  facts: string[];
+  observations: string[];
+  possible_interpretations: string[];
+  uncertainties: string[];
+  recommendations: string[];
+  data_gaps?: string[];
+  summary: string;
+}
+
+export interface ConvertCanvasToEntityInput {
+  tool_key: ToolKey;
+  canvas_id?: string;
+  canvas_data: Record<string, any>;
+  target_entity_type: 'problem' | 'hypothesis' | 'experiment' | 'decision' | 'persona' | 'opportunity';
 }
 
 
