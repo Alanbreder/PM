@@ -11,8 +11,10 @@ export type ToolCategory =
 export type ToolKey =
   | 'product_canvas'
   | 'product_vision_board'
+  | 'product_strategy'
   | 'opportunity_solution_tree'
   | 'personas'
+  | 'empathy_map'
   | 'user_journey_map'
   | 'jtbd'
   | 'problem_statement'
@@ -23,6 +25,7 @@ export type ToolKey =
   | 'experiment_canvas'
   | 'decision_canvas'
   | 'story_map'
+  | 'prd_canvas'
   | 'lean_canvas';
 
 export interface ToolDefinition {
@@ -33,7 +36,7 @@ export interface ToolDefinition {
   tagline: string;
   description: string;
   iconName: string;
-  suggestedEntityConversion?: 'problem' | 'hypothesis' | 'experiment' | 'decision' | 'persona' | 'opportunity';
+  suggestedEntityConversion?: 'problem' | 'hypothesis' | 'experiment' | 'decision' | 'persona' | 'opportunity' | 'roadmap_item';
   popular?: boolean;
 }
 

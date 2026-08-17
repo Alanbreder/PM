@@ -45,6 +45,14 @@ const TOOLS_CATALOG: ToolDefinition[] = [
     tags: ['persona', 'usuario', 'perfil', 'pesquisa'],
   },
   {
+    key: 'empathy_map',
+    name: 'Mapa de Empatia',
+    description: 'Dave Gray framework: o que o usuário Diz, Pensa, Faz, Sente, Dores e Ganhos.',
+    category: 'discovery',
+    recommendedFor: 'Mapear a perspectiva e sentimentos do usuário',
+    tags: ['empatia', 'diz', 'pensa', 'sente', 'dores', 'ganhos'],
+  },
+  {
     key: 'user_journey_map',
     name: 'User Journey Map',
     description: 'Jornada passo a passo do usuário com sentimentos, ações e pontos de fricção.',
@@ -77,6 +85,14 @@ const TOOLS_CATALOG: ToolDefinition[] = [
     category: 'strategy',
     recommendedFor: 'Definir a Estrela Guia e propósito do produto',
     tags: ['visao', 'estrategia', 'proposito', 'pichler'],
+  },
+  {
+    key: 'product_strategy',
+    name: 'Estratégia de Produto',
+    description: 'Visão, mercado-alvo, problema, apostas estratégicas, diferenciais e métricas.',
+    category: 'strategy',
+    recommendedFor: 'Alinhar diferenciais e apostas de mercado',
+    tags: ['estrategia', 'apostas', 'diferenciais', 'metricas', 'mercado'],
   },
   {
     key: 'product_canvas',
@@ -161,6 +177,14 @@ const TOOLS_CATALOG: ToolDefinition[] = [
     category: 'execution',
     recommendedFor: 'Organizar histórias e lançamentos contínuos',
     tags: ['story map', 'mvp', 'release', 'backlog'],
+  },
+  {
+    key: 'prd_canvas',
+    name: 'PRD Canvas (Product Requirements)',
+    description: 'Documento completo de requisitos, histórias de usuário, regras de negócio e critérios de aceite.',
+    category: 'execution',
+    recommendedFor: 'Documentar requisitos com clareza para engenharia e design',
+    tags: ['prd', 'requisitos', 'criterios', 'historias', 'escopo'],
   },
 ];
 

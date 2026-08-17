@@ -10,6 +10,7 @@ export const toolkitRouter = Router();
 const validToolKeys = [
   'product_canvas',
   'product_vision_board',
+  'product_strategy',
   'opportunity_solution_tree',
   'personas',
   'user_journey_map',
@@ -22,6 +23,7 @@ const validToolKeys = [
   'experiment_canvas',
   'decision_canvas',
   'story_map',
+  'prd_canvas',
   'lean_canvas',
   'empathy_map',
   'swot_analysis',
@@ -40,7 +42,7 @@ const saveCanvasSchema = z.object({
 
 const convertEntitySchema = z.object({
   tool_key: z.enum(validToolKeys),
-  target_entity_type: z.enum(['problem', 'hypothesis', 'experiment', 'decision', 'persona', 'opportunity']),
+  target_entity_type: z.enum(['problem', 'hypothesis', 'experiment', 'decision', 'persona', 'opportunity', 'roadmap_item']),
   canvas_data: z.record(z.any()),
 });
 
@@ -253,6 +255,22 @@ toolkitRouter.post('/convert-to-entity', requireRole(['owner', 'admin', 'member'
         goals: Array.isArray(canvas_data.goals) ? canvas_data.goals : (canvas_data.goals ? [canvas_data.goals] : []),
         pains: Array.isArray(canvas_data.pains) ? canvas_data.pains : (canvas_data.pains ? [canvas_data.pains] : []),
         jobs_to_be_done: Array.isArray(canvas_data.jobs) ? canvas_data.jobs : (canvas_data.jobs ? [canvas_data.jobs] : []),
+      });
+    } else if (target_entity_type === 'roadmap_item') {
+      const title = canvas_data.title || canvas_data.product_name || canvas_data.initiative || 'Nova Iniciativa de Roadmap';
+      const description = canvas_data.context_and_overview || canvas_data.description || canvas_data.objectives || 'Iniciativa gerada através do PRD Canvas / Toolkit.';
+      
+      const decisions = await dbStore.listDecisions(workspaceId);
+      const targetDecisionId = decisions[0]?.id || undefined;
+
+      createdEntity = await dbStore.createRoadmapItem(workspaceId, {
+        title: title.substring(0, 200),
+        description: description,
+        timeframe: 'next',
+        target_quarter: 'Q3 2026',
+        status: 'planned',
+        progress: 0,
+        decision_id: targetDecisionId,
       });
     }
 

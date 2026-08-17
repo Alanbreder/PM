@@ -23,6 +23,9 @@ import { ExperimentCanvasTool } from './impl/ExperimentCanvasTool';
 import { DecisionCanvasTool } from './impl/DecisionCanvasTool';
 import { StoryMapTool } from './impl/StoryMapTool';
 import { LeanCanvasTool } from './impl/LeanCanvasTool';
+import { EmpathyMapTool } from './impl/EmpathyMapTool';
+import { ProductStrategyTool } from './impl/ProductStrategyTool';
+import { PRDCanvasTool } from './impl/PRDCanvasTool';
 
 interface ToolRunnerViewProps {
   toolKey: ToolKey;
@@ -87,6 +90,18 @@ const TOOL_TITLES: Record<ToolKey, { name: string; description: string }> = {
   story_map: {
     name: 'User Story Mapping',
     description: 'Jeff Patton story mapping com fatiamento de releases e escopo essencial de MVP.',
+  },
+  empathy_map: {
+    name: 'Mapa de Empatia',
+    description: 'Dave Gray framework: o que o usuário Diz, Pensa, Faz, Sente, Dores e Ganhos.',
+  },
+  product_strategy: {
+    name: 'Estratégia de Produto',
+    description: 'Visão, mercado-alvo, problema, apostas estratégicas, diferenciais e métricas.',
+  },
+  prd_canvas: {
+    name: 'PRD Canvas (Product Requirements)',
+    description: 'Documento completo de requisitos, histórias, regras de negócio e critérios de aceite.',
   },
   lean_canvas: {
     name: 'Lean Canvas',
@@ -299,6 +314,12 @@ export const ToolRunnerView: React.FC<ToolRunnerViewProps> = ({
         return <DecisionCanvasTool data={canvasData} onChange={handleDataChange} />;
       case 'story_map':
         return <StoryMapTool data={canvasData} onChange={handleDataChange} />;
+      case 'empathy_map':
+        return <EmpathyMapTool data={canvasData} onChange={handleDataChange} />;
+      case 'product_strategy':
+        return <ProductStrategyTool data={canvasData} onChange={handleDataChange} />;
+      case 'prd_canvas':
+        return <PRDCanvasTool data={canvasData} onChange={handleDataChange} />;
       case 'lean_canvas':
         return <LeanCanvasTool data={canvasData} onChange={handleDataChange} />;
       default:
