@@ -170,7 +170,7 @@ export const OpportunityView: React.FC<OpportunityViewProps> = ({
 
             {onNavigateTab && (
               <div 
-                onClick={() => onNavigateTab('problems')}
+                onClick={() => onNavigateTab('problem')}
                 className="bg-zinc-900 border border-zinc-700/80 hover:border-military-500 p-5 rounded-xl text-left cursor-pointer transition group"
               >
                 <span className="text-xs font-bold text-zinc-100 group-hover:text-military-300 flex items-center gap-1.5 mb-1.5">
@@ -243,7 +243,7 @@ export const OpportunityView: React.FC<OpportunityViewProps> = ({
                     )}
                     {onNavigateTab && (
                       <button
-                        onClick={() => onNavigateTab('hypotheses')}
+                        onClick={() => onNavigateTab('hypothesis')}
                         className="text-military-400 hover:text-military-300 font-medium flex items-center gap-1 transition"
                       >
                         Formular Hipóteses <ArrowRight className="w-3 h-3" />

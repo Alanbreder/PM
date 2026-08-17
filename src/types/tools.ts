@@ -26,7 +26,10 @@ export type ToolKey =
   | 'decision_canvas'
   | 'story_map'
   | 'prd_canvas'
-  | 'lean_canvas';
+  | 'lean_canvas'
+  | 'swot_analysis'
+  | 'customer_journey_map'
+  | 'story_mapping';
 
 export interface ToolDefinition {
   id: ToolKey;

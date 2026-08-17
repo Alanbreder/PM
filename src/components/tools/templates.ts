@@ -1,6 +1,6 @@
 import { ToolKey, ToolTemplate } from '../../types/tools';
 
-export const TOOL_TEMPLATES: Record<ToolKey, ToolTemplate[]> = {
+export const TOOL_TEMPLATES: Partial<Record<ToolKey, ToolTemplate[]>> = {
   product_canvas: [
     {
       id: 'blank',

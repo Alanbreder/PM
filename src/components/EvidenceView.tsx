@@ -13,7 +13,8 @@ import {
   Layers,
   MessageSquare,
   HelpCircle,
-  X
+  X,
+  ArrowRight
 } from 'lucide-react';
 
 interface EvidenceViewProps {
@@ -339,15 +340,26 @@ export const EvidenceView: React.FC<EvidenceViewProps> = ({
                     </span>
                   </div>
 
-                  {ev.tags && ev.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {ev.tags.map((tag, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
-                          <Tag className="w-2.5 h-2.5 text-zinc-400" /> {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between pt-1">
+                    {ev.tags && ev.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {ev.tags.map((tag, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
+                            <Tag className="w-2.5 h-2.5 text-zinc-400" /> {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : <div />}
+
+                    {onNavigateTab && (
+                      <button
+                        onClick={() => onNavigateTab('problem')}
+                        className="text-military-400 hover:text-military-300 font-medium text-[10px] flex items-center gap-1 transition"
+                      >
+                        Identificar Problema <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

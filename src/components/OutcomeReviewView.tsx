@@ -401,7 +401,7 @@ export const OutcomeReviewView: React.FC<OutcomeReviewViewProps> = ({
                     {/* Navigate back to Discovery */}
                     {onNavigateTab && (
                       <button
-                        onClick={() => onNavigateTab('problems')}
+                        onClick={() => onNavigateTab('problem')}
                         className="px-3 py-1.5 rounded-lg bg-military-950 hover:bg-military-900 text-military-300 text-xs font-medium border border-military-800/80 flex items-center gap-1.5 transition ml-auto"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-military-400" />

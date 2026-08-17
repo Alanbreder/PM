@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
-import { FileText, Plus, AlertCircle, CheckCircle2, ListChecks, Code2, Tag, Compass } from 'lucide-react';
+import { FileText, Plus, AlertCircle, CheckCircle2, ListChecks, Code2, Tag, Compass, ArrowRight } from 'lucide-react';
 
 interface PRDViewProps {
   workspaceId: string;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const PRDView: React.FC<PRDViewProps> = ({ workspaceId }) => {
+export const PRDView: React.FC<PRDViewProps> = ({ workspaceId, onNavigateTab }) => {
   const [prds, setPrds] = useState<any[]>([]);
   const [roadmapItems, setRoadmapItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,6 +234,17 @@ export const PRDView: React.FC<PRDViewProps> = ({ workspaceId }) => {
                     <p className="text-xs text-zinc-300 font-mono bg-zinc-950 p-3 rounded-lg border border-zinc-800">
                       {selectedPrd.technical_notes}
                     </p>
+                  </div>
+                )}
+
+                {onNavigateTab && (
+                  <div className="flex justify-end pt-4 border-t border-zinc-800">
+                    <button
+                      onClick={() => onNavigateTab('outcomes')}
+                      className="text-military-400 hover:text-military-300 font-medium text-xs flex items-center gap-1.5 transition"
+                    >
+                      Acompanhar Entrega e Outcomes <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>

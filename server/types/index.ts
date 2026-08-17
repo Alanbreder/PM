@@ -657,8 +657,10 @@ export interface ActivityLog {
 export type ToolKey =
   | 'product_canvas'
   | 'product_vision_board'
+  | 'product_strategy'
   | 'opportunity_solution_tree'
   | 'personas'
+  | 'empathy_map'
   | 'user_journey_map'
   | 'jtbd'
   | 'problem_statement'
@@ -669,8 +671,8 @@ export type ToolKey =
   | 'experiment_canvas'
   | 'decision_canvas'
   | 'story_map'
+  | 'prd_canvas'
   | 'lean_canvas'
-  | 'empathy_map'
   | 'swot_analysis'
   | 'customer_journey_map'
   | 'story_mapping';

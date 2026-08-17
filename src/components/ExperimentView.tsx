@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Experiment, Hypothesis } from '../types';
 import { apiFetch } from '../lib/api';
-import { FlaskConical, Plus, AlertCircle, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { FlaskConical, Plus, AlertCircle, Play, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 
 interface ExperimentViewProps {
   workspaceId: string;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const ExperimentView: React.FC<ExperimentViewProps> = ({ workspaceId }) => {
+export const ExperimentView: React.FC<ExperimentViewProps> = ({ workspaceId, onNavigateTab }) => {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,9 +239,19 @@ export const ExperimentView: React.FC<ExperimentViewProps> = ({ workspaceId }) =
                   )}
 
                   {exp.status === 'completed' && (
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Pronto para Decisão (Etapa 6)
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Pronto para Decisão (Etapa 6)
+                      </span>
+                      {onNavigateTab && (
+                        <button
+                          onClick={() => onNavigateTab('decision')}
+                          className="text-military-400 hover:text-military-300 font-medium text-[10px] flex items-center gap-1 transition"
+                        >
+                          Ir para Decisões <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

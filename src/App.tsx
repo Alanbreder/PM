@@ -191,8 +191,8 @@ export default function App() {
                 }}
               />
             )}
-            {activeTab === 'personas' && <PersonasView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'problem' && <ProblemView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'personas' && <PersonasView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
+            {activeTab === 'problem' && <ProblemView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
             {activeTab === 'opportunity' && (
               <OpportunityView
                 workspaceId={currentWorkspace.id}
@@ -214,16 +214,16 @@ export default function App() {
                 }}
               />
             )}
-            {activeTab === 'experiment' && <ExperimentView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'decision' && <DecisionView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'experiment' && <ExperimentView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
+            {activeTab === 'decision' && <DecisionView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
             {activeTab === 'intelligence' && (
               <IntelligenceView
                 workspaceId={currentWorkspace.id}
                 onNavigateTab={(tab) => setActiveTab(tab)}
               />
             )}
-            {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'prd' && <PRDView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
+            {activeTab === 'prd' && <PRDView workspaceId={currentWorkspace.id} onNavigateTab={(tab) => setActiveTab(tab)} />}
             {activeTab === 'outcomes' && (
               <OutcomeReviewView
                 workspaceId={currentWorkspace.id}

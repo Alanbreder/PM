@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Problem } from '../types';
 import { apiFetch } from '../lib/api';
-import { AlertCircle, Plus } from 'lucide-react';
+import { AlertCircle, Plus, ArrowRight } from 'lucide-react';
 
 interface ProblemViewProps {
   workspaceId: string;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const ProblemView: React.FC<ProblemViewProps> = ({ workspaceId }) => {
+export const ProblemView: React.FC<ProblemViewProps> = ({ workspaceId, onNavigateTab }) => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +128,16 @@ export const ProblemView: React.FC<ProblemViewProps> = ({ workspaceId }) => {
                 <span>Frequência: <strong className="text-zinc-200">{p.frequency}</strong></span>
                 <span>Status: <strong className="text-military-400">{p.status}</strong></span>
               </div>
+              {onNavigateTab && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => onNavigateTab('opportunity')}
+                    className="text-military-400 hover:text-military-300 font-medium text-[10px] flex items-center gap-1 transition"
+                  >
+                    Desenhar Oportunidade <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

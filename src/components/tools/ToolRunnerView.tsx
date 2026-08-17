@@ -34,7 +34,7 @@ interface ToolRunnerViewProps {
   onBackToHub: () => void;
 }
 
-const TOOL_TITLES: Record<ToolKey, { name: string; description: string }> = {
+const TOOL_TITLES: Partial<Record<ToolKey, { name: string; description: string }>> = {
   product_canvas: {
     name: 'Product Canvas',
     description: 'Roman Pichler framework: visao holistica, publico, jornada, metricas e escopo.',

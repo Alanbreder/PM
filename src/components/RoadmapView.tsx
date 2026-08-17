@@ -42,9 +42,10 @@ import {
 
 interface RoadmapViewProps {
   workspaceId: string;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const RoadmapView: React.FC<RoadmapViewProps> = ({ workspaceId }) => {
+export const RoadmapView: React.FC<RoadmapViewProps> = ({ workspaceId, onNavigateTab }) => {
   const [items, setItems] = useState<RoadmapItem[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -599,6 +600,16 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({ workspaceId }) => {
                     </div>
 
                     <div className="flex items-center gap-1">
+                      {onNavigateTab && (
+                        <button
+                          onClick={() => onNavigateTab('prd')}
+                          title="Escrever PRD"
+                          className="px-2 py-1 text-xs text-military-400 hover:text-military-300 hover:bg-military-900/50 rounded flex items-center gap-1 transition"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          PRD
+                        </button>
+                      )}
                       <button
                         onClick={() => handleOpenLineage(item)}
                         title="Ver Linhagem Completa (Discovery Tree)"

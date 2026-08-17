@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api';
 import { Users, Plus, AlertCircle, Trash2, Tag, CheckCircle2, HeartHandshake } from 'lucide-react';
 
 interface PersonasViewProps {
+  onNavigateTab?: (tab: string) => void;
   workspaceId: string;
 }
 

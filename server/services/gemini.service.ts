@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
+import { withExponentialBackoff } from '../utils/retry.js';
 
 function getApiKey(): string {
   return process.env.GEMINI_API_KEY || config.geminiApiKey || '';
@@ -63,13 +64,13 @@ Extraia e retorne estritamente um JSON no seguinte formato:
 }
 `;
 
-  const response = await client.models.generateContent({
+  const response = await withExponentialBackoff(() => client.models.generateContent({
     model: 'gemini-3.6-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
     },
-  });
+  }));
 
   const text = response.text || '{}';
   return JSON.parse(text);
@@ -103,10 +104,10 @@ ${question}
 Forneça uma resposta clara, objetiva e estruturada em Markdown. Se o contexto não possuir dados suficientes para responder, explique gentilmente o que está faltando.
 `;
 
-  const response = await client.models.generateContent({
+  const response = await withExponentialBackoff(() => client.models.generateContent({
     model: 'gemini-3.6-flash',
     contents: prompt,
-  });
+  }));
 
   return response.text || '';
 }
@@ -202,13 +203,13 @@ DIRETRIZES FUNDAMENTAIS DO PRODUCT COACH:
 `;
 
   try {
-    const response = await client.models.generateContent({
+    const response = await withExponentialBackoff(() => client.models.generateContent({
       model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
-    });
+    }));
 
     const text = response.text || '{}';
     return JSON.parse(text);

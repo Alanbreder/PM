@@ -162,7 +162,7 @@ export const HypothesisView: React.FC<HypothesisViewProps> = ({
 
             {onNavigateTab && (
               <div 
-                onClick={() => onNavigateTab('opportunities')}
+                onClick={() => onNavigateTab('opportunity')}
                 className="bg-zinc-900 border border-zinc-700/80 hover:border-military-500 p-5 rounded-xl text-left cursor-pointer transition group"
               >
                 <span className="text-xs font-bold text-zinc-100 group-hover:text-military-300 flex items-center gap-1.5 mb-1.5">
@@ -236,7 +236,7 @@ export const HypothesisView: React.FC<HypothesisViewProps> = ({
 
                   {onNavigateTab && (
                     <button
-                      onClick={() => onNavigateTab('experiments')}
+                      onClick={() => onNavigateTab('experiment')}
                       className="text-military-400 hover:text-military-300 font-medium flex items-center gap-1 shrink-0 transition"
                     >
                       <FlaskConical className="w-3 h-3" /> Criar Experimento

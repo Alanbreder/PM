@@ -18,9 +18,10 @@ import {
 
 interface DecisionViewProps {
   workspaceId: string;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export const DecisionView: React.FC<DecisionViewProps> = ({ workspaceId }) => {
+export const DecisionView: React.FC<DecisionViewProps> = ({ workspaceId, onNavigateTab }) => {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -260,6 +261,17 @@ export const DecisionView: React.FC<DecisionViewProps> = ({ workspaceId }) => {
                       <span className="text-[10px] text-zinc-500 whitespace-nowrap">
                         {new Date(dec.created_at).toLocaleDateString('pt-BR')}
                       </span>
+                    </div>
+                  )}
+
+                  {dec.status === 'accepted' && onNavigateTab && (
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        onClick={() => onNavigateTab('roadmap')}
+                        className="text-emerald-400 hover:text-emerald-300 font-medium text-[10px] flex items-center gap-1 transition"
+                      >
+                        Adicionar ao Roadmap <ArrowRight className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
                 </div>
