@@ -166,7 +166,14 @@ export default function App() {
             {activeTab === 'dashboard' && (
               <ExecutiveDashboardView
                 workspaceId={currentWorkspace.id}
-                onNavigateTab={(tab) => setActiveTab(tab)}
+                onNavigateTab={(tab, initialTool) => {
+                  if (initialTool) {
+                    setToolkitInitialTool(initialTool);
+                  } else {
+                    setToolkitInitialTool(null);
+                  }
+                  setActiveTab(tab);
+                }}
               />
             )}
             {activeTab === 'strategy' && <StrategyView workspaceId={currentWorkspace.id} />}
