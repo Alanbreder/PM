@@ -48,11 +48,13 @@ export interface Research {
 export interface Evidence {
   id: string;
   workspace_id: string;
-  research_id: string;
+  research_id?: string | null;
   content: string;
   source?: string;
+  origin_type?: 'research' | 'customer_interview' | 'support_ticket' | 'analytics' | 'sales_feedback' | 'user_testing' | 'other';
   impact_score: number;
   tags?: string[];
+  notes?: string;
   created_at: string;
 }
 
@@ -82,12 +84,13 @@ export interface Opportunity {
   created_at: string;
   updated_at: string;
   problem_count?: number;
+  problem_id?: string | null;
 }
 
 export interface Hypothesis {
   id: string;
   workspace_id: string;
-  opportunity_id: string;
+  opportunity_id?: string | null;
   title: string;
   statement: string;
   metrics_to_validate?: string;

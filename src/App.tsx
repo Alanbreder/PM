@@ -21,8 +21,8 @@ import { ToolkitView } from './components/ToolkitView';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ToolKey } from './types/tools';
-
 import { AuthView } from './components/AuthView';
+import { WorkspaceOnboardingView } from './components/WorkspaceOnboardingView';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -77,21 +77,9 @@ export default function App() {
         }
       }
 
-      // Load workspaces
+      // Load workspaces (no silent creation - user explicit confirmation in onboarding)
       const wsRes = await apiFetch('/api/workspaces');
-      let list: Workspace[] = wsRes.data || [];
-
-      // If no workspace exists, create a default workspace
-      if (list.length === 0) {
-        const defaultWsRes = await apiFetch('/api/workspaces', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: 'Workspace Principal',
-            description: 'Workspace padrão para descoberta e produto OS',
-          }),
-        });
-        list = [defaultWsRes.data];
-      }
+      const list: Workspace[] = wsRes.data || [];
 
       setWorkspaces(list);
       setCurrentWorkspace(list[0] || null);
@@ -147,6 +135,21 @@ export default function App() {
     );
   }
 
+  // First access / No workspaces setup
+  if (workspaces.length === 0 || !currentWorkspace) {
+    return (
+      <WorkspaceOnboardingView
+        currentUser={currentUser}
+        onWorkspaceCreated={(newWs) => {
+          setWorkspaces([newWs]);
+          setCurrentWorkspace(newWs);
+          setActiveTab('dashboard');
+        }}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
       <Navbar
@@ -178,12 +181,39 @@ export default function App() {
             )}
             {activeTab === 'strategy' && <StrategyView workspaceId={currentWorkspace.id} />}
             {activeTab === 'research' && <ResearchView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'evidence' && <EvidenceView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'evidence' && (
+              <EvidenceView
+                workspaceId={currentWorkspace.id}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenToolkit={(toolKey) => {
+                  setToolkitInitialTool(toolKey);
+                  setActiveTab('toolkit');
+                }}
+              />
+            )}
             {activeTab === 'personas' && <PersonasView workspaceId={currentWorkspace.id} />}
             {activeTab === 'problem' && <ProblemView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'opportunity' && <OpportunityView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'opportunity' && (
+              <OpportunityView
+                workspaceId={currentWorkspace.id}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenToolkit={(toolKey) => {
+                  setToolkitInitialTool(toolKey);
+                  setActiveTab('toolkit');
+                }}
+              />
+            )}
             {activeTab === 'prioritization' && <PrioritizationView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'hypothesis' && <HypothesisView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'hypothesis' && (
+              <HypothesisView
+                workspaceId={currentWorkspace.id}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenToolkit={(toolKey) => {
+                  setToolkitInitialTool(toolKey);
+                  setActiveTab('toolkit');
+                }}
+              />
+            )}
             {activeTab === 'experiment' && <ExperimentView workspaceId={currentWorkspace.id} />}
             {activeTab === 'decision' && <DecisionView workspaceId={currentWorkspace.id} />}
             {activeTab === 'intelligence' && (
@@ -194,7 +224,16 @@ export default function App() {
             )}
             {activeTab === 'roadmap' && <RoadmapView workspaceId={currentWorkspace.id} />}
             {activeTab === 'prd' && <PRDView workspaceId={currentWorkspace.id} />}
-            {activeTab === 'outcomes' && <OutcomeReviewView workspaceId={currentWorkspace.id} />}
+            {activeTab === 'outcomes' && (
+              <OutcomeReviewView
+                workspaceId={currentWorkspace.id}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenToolkit={(toolKey) => {
+                  setToolkitInitialTool(toolKey);
+                  setActiveTab('toolkit');
+                }}
+              />
+            )}
             {activeTab === 'toolkit' && (
               <ToolkitView
                 workspaceId={currentWorkspace.id}

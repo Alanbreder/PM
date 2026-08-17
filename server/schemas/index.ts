@@ -55,11 +55,13 @@ export const approveAnalysisSchema = z.object({
 
 // Evidence Schemas
 export const createEvidenceSchema = z.object({
-  research_id: uuidSchema,
+  research_id: uuidSchema.optional().nullable(),
   content: z.string().min(3, 'O conteúdo da evidência deve ter no mínimo 3 caracteres'),
   source: z.string().optional(),
+  origin_type: z.enum(['research', 'customer_interview', 'support_ticket', 'analytics', 'sales_feedback', 'user_testing', 'other']).optional(),
   impact_score: z.number().int().min(1).max(5).default(3),
   tags: z.array(z.string()).optional(),
+  notes: z.string().optional(),
 });
 
 export const batchCreateEvidenceSchema = z.object({
@@ -93,6 +95,7 @@ export const createOpportunitySchema = z.object({
   description: z.string().min(10, 'A descrição deve ter no mínimo 10 caracteres'),
   effort: z.enum(['low', 'medium', 'high', 'very_high']).default('medium'),
   value: z.enum(['low', 'medium', 'high', 'transformative']).default('medium'),
+  problem_id: uuidSchema.optional().nullable(),
   problem_ids: z.array(uuidSchema).optional(),
 });
 
@@ -110,7 +113,7 @@ export const linkOpportunityProblemsSchema = z.object({
 
 // Hypothesis Schemas
 export const createHypothesisSchema = z.object({
-  opportunity_id: uuidSchema,
+  opportunity_id: uuidSchema.optional().nullable(),
   title: z.string().min(3, 'O título da hipótese deve ter no mínimo 3 caracteres').max(255),
   statement: z.string().min(10, 'A declaração deve ter no mínimo 10 caracteres'),
   metrics_to_validate: z.string().optional(),

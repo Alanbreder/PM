@@ -62,20 +62,24 @@ export interface CreateResearchInput {
 export interface Evidence {
   id: string;
   workspace_id: string;
-  research_id: string;
+  research_id?: string | null;
   content: string;
   source?: string;
+  origin_type?: 'research' | 'customer_interview' | 'support_ticket' | 'analytics' | 'sales_feedback' | 'user_testing' | 'other';
   impact_score: number;
   tags?: string[];
+  notes?: string;
   created_at: string;
 }
 
 export interface CreateEvidenceInput {
-  research_id: string;
+  research_id?: string | null;
   content: string;
   source?: string;
+  origin_type?: 'research' | 'customer_interview' | 'support_ticket' | 'analytics' | 'sales_feedback' | 'user_testing' | 'other';
   impact_score?: number;
   tags?: string[];
+  notes?: string;
 }
 
 export interface Problem {
@@ -120,6 +124,7 @@ export interface Opportunity {
   created_at: string;
   updated_at: string;
   problem_count?: number;
+  problem_id?: string | null;
 }
 
 export interface CreateOpportunityInput {
@@ -127,6 +132,7 @@ export interface CreateOpportunityInput {
   description: string;
   effort: 'low' | 'medium' | 'high' | 'very_high';
   value: 'low' | 'medium' | 'high' | 'transformative';
+  problem_id?: string | null;
   problem_ids?: string[];
 }
 
@@ -141,7 +147,7 @@ export interface UpdateOpportunityInput {
 export interface Hypothesis {
   id: string;
   workspace_id: string;
-  opportunity_id: string;
+  opportunity_id?: string | null;
   title: string;
   statement: string;
   metrics_to_validate?: string;
@@ -152,7 +158,7 @@ export interface Hypothesis {
 }
 
 export interface CreateHypothesisInput {
-  opportunity_id: string;
+  opportunity_id?: string | null;
   title: string;
   statement: string;
   metrics_to_validate?: string;

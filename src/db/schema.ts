@@ -69,9 +69,11 @@ export const researches = pgTable('researches', {
 export const evidences = pgTable('evidences', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
-  researchId: uuid('research_id').notNull(),
+  researchId: uuid('research_id'),
   content: text('content').notNull(),
   source: varchar('source', { length: 255 }),
+  originType: varchar('origin_type', { length: 50 }),
+  notes: text('notes'),
   impactScore: integer('impact_score').notNull().default(3),
   tags: jsonb('tags').$type<string[]>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -173,7 +175,7 @@ export const opportunityProblems = pgTable('opportunity_problems', {
 export const hypotheses = pgTable('hypotheses', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
-  opportunityId: uuid('opportunity_id').notNull(),
+  opportunityId: uuid('opportunity_id'),
   title: varchar('title', { length: 255 }).notNull(),
   statement: text('statement').notNull(),
   metricsToValidate: text('metrics_to_validate'),

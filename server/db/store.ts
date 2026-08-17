@@ -33,6 +33,7 @@ import { db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { BusinessRuleError } from '../utils/errors.js';
+export { BusinessRuleError };
 
 class PostgresStore {
   // Users
@@ -470,18 +471,22 @@ class PostgresStore {
 
   async createEvidence(workspaceId: string, data: CreateEvidenceInput): Promise<Evidence> {
     try {
-      const research = await this.getResearchById(workspaceId, data.research_id);
-      if (!research) {
-        throw new BusinessRuleError('Pesquisa não encontrada neste workspace.');
+      if (data.research_id) {
+        const research = await this.getResearchById(workspaceId, data.research_id);
+        if (!research) {
+          throw new BusinessRuleError('Pesquisa não encontrada neste workspace.');
+        }
       }
 
       const [inserted] = await db
         .insert(schema.evidences)
         .values({
           workspaceId,
-          researchId: data.research_id,
+          researchId: data.research_id || null,
           content: data.content,
           source: data.source,
+          originType: data.origin_type,
+          notes: data.notes,
           impactScore: data.impact_score || 3,
           tags: data.tags,
         })
@@ -490,9 +495,11 @@ class PostgresStore {
       return {
         id: inserted.id,
         workspace_id: inserted.workspaceId,
-        research_id: inserted.researchId,
+        research_id: inserted.researchId || undefined,
         content: inserted.content,
         source: inserted.source || undefined,
+        origin_type: inserted.originType as any,
+        notes: inserted.notes || undefined,
         impact_score: inserted.impactScore,
         tags: (inserted.tags as string[]) || undefined,
         created_at: inserted.createdAt.toISOString(),
@@ -761,18 +768,24 @@ class PostgresStore {
 
   async createOpportunity(workspaceId: string, data: CreateOpportunityInput): Promise<Opportunity> {
     try {
-      if (data.problem_ids && data.problem_ids.length > 0) {
+      const problemIds = data.problem_ids && data.problem_ids.length > 0
+        ? data.problem_ids
+        : data.problem_id
+        ? [data.problem_id]
+        : [];
+
+      if (problemIds.length > 0) {
         const existingProblems = await db
           .select()
           .from(schema.problems)
           .where(
             and(
               eq(schema.problems.workspaceId, workspaceId),
-              inArray(schema.problems.id, data.problem_ids)
+              inArray(schema.problems.id, problemIds)
             )
           );
 
-        if (existingProblems.length !== data.problem_ids.length) {
+        if (existingProblems.length !== problemIds.length) {
           throw new BusinessRuleError('Um ou mais problemas não pertencem a este workspace.');
         }
       }
@@ -788,8 +801,8 @@ class PostgresStore {
         })
         .returning();
 
-      if (data.problem_ids && data.problem_ids.length > 0) {
-        for (const pId of data.problem_ids) {
+      if (problemIds.length > 0) {
+        for (const pId of problemIds) {
           await db.insert(schema.opportunityProblems).values({
             workspaceId,
             opportunityId: inserted.id,
@@ -807,6 +820,7 @@ class PostgresStore {
         value: inserted.value as any,
         status: inserted.status as any,
         score: inserted.score || 0,
+        problem_id: problemIds[0] || undefined,
         created_at: inserted.createdAt.toISOString(),
         updated_at: inserted.updatedAt.toISOString(),
       };
@@ -922,18 +936,19 @@ class PostgresStore {
   }
 
   async createHypothesis(workspaceId: string, data: CreateHypothesisInput): Promise<Hypothesis> {
-
     try {
-      const opp = await this.getOpportunityById(workspaceId, data.opportunity_id);
-      if (!opp) {
-        throw new BusinessRuleError('Oportunidade não encontrada neste workspace.');
+      if (data.opportunity_id) {
+        const opp = await this.getOpportunityById(workspaceId, data.opportunity_id);
+        if (!opp) {
+          throw new BusinessRuleError('Oportunidade não encontrada neste workspace.');
+        }
       }
 
       const [inserted] = await db
         .insert(schema.hypotheses)
         .values({
           workspaceId,
-          opportunityId: data.opportunity_id,
+          opportunityId: data.opportunity_id || null,
           title: data.title,
           statement: data.statement,
           metricsToValidate: data.metrics_to_validate,
@@ -944,7 +959,7 @@ class PostgresStore {
       return {
         id: inserted.id,
         workspace_id: inserted.workspaceId,
-        opportunity_id: inserted.opportunityId,
+        opportunity_id: inserted.opportunityId || undefined,
         title: inserted.title,
         statement: inserted.statement,
         metrics_to_validate: inserted.metricsToValidate || undefined,
@@ -1775,9 +1790,11 @@ class PostgresStore {
           const hyp = await this.getHypothesisById(workspaceId, exp.hypothesis_id);
           if (hyp) {
             hypothesis = hyp;
-            const opp = await this.getOpportunityById(workspaceId, hyp.opportunity_id);
-            if (opp) {
-              opportunity = opp;
+            if (hyp.opportunity_id) {
+              const opp = await this.getOpportunityById(workspaceId, hyp.opportunity_id);
+              if (opp) {
+                opportunity = opp;
+              }
             }
           }
         }
@@ -1860,13 +1877,19 @@ class PostgresStore {
       );
     }
 
-    const researchIds = new Set(evidences.map((e) => e.research_id));
+    const researchIds = Array.from(
+      new Set(
+        evidences
+          .map((e) => e.research_id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      )
+    );
     const researches: Research[] = [];
-    if (researchIds.size > 0) {
+    if (researchIds.length > 0) {
       const resRows = await db
         .select()
         .from(schema.researches)
-        .where(and(inArray(schema.researches.id, Array.from(researchIds)), eq(schema.researches.workspaceId, workspaceId)));
+        .where(and(inArray(schema.researches.id, researchIds), eq(schema.researches.workspaceId, workspaceId)));
       researches.push(
         ...resRows.map((r) => ({
           id: r.id,

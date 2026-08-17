@@ -757,18 +757,22 @@ export class MemoryStore {
   }
 
   async createEvidence(workspaceId: string, data: CreateEvidenceInput): Promise<Evidence> {
-    const research = await this.getResearchById(workspaceId, data.research_id);
-    if (!research) {
-      throw new BusinessRuleError('Pesquisa não encontrada neste workspace.');
+    if (data.research_id) {
+      const research = await this.getResearchById(workspaceId, data.research_id);
+      if (!research) {
+        throw new BusinessRuleError('Pesquisa não encontrada neste workspace.');
+      }
     }
 
     const now = new Date().toISOString();
     const evidence: Evidence = {
       id: `ev_${randomUUID()}`,
       workspace_id: workspaceId,
-      research_id: data.research_id,
+      research_id: data.research_id || null,
       content: data.content,
       source: data.source,
+      origin_type: data.origin_type,
+      notes: data.notes,
       impact_score: data.impact_score || 3,
       tags: data.tags,
       created_at: now,
@@ -904,9 +908,19 @@ export class MemoryStore {
 
     this.data.opportunities.push(opportunity);
 
-    if (data.problem_ids && data.problem_ids.length > 0) {
+    const problemIds = data.problem_ids && data.problem_ids.length > 0
+      ? data.problem_ids
+      : data.problem_id
+      ? [data.problem_id]
+      : [];
+
+    if (problemIds.length > 0) {
       if (!this.data.opportunityProblems) this.data.opportunityProblems = [];
-      for (const pId of data.problem_ids) {
+      for (const pId of problemIds) {
+        const prob = await this.getProblemById(workspaceId, pId);
+        if (!prob) {
+          throw new BusinessRuleError('Um ou mais problemas não pertencem a este workspace.');
+        }
         this.data.opportunityProblems.push({
           id: `op_p_${randomUUID()}`,
           workspace_id: workspaceId,
@@ -987,14 +1001,16 @@ export class MemoryStore {
   }
 
   async createHypothesis(workspaceId: string, data: CreateHypothesisInput): Promise<Hypothesis> {
-    const op = await this.getOpportunityById(workspaceId, data.opportunity_id);
-    if (!op) throw new BusinessRuleError('Oportunidade não encontrada neste workspace.');
+    if (data.opportunity_id) {
+      const op = await this.getOpportunityById(workspaceId, data.opportunity_id);
+      if (!op) throw new BusinessRuleError('Oportunidade não encontrada neste workspace.');
+    }
 
     const now = new Date().toISOString();
     const hypothesis: Hypothesis = {
       id: `hyp_${randomUUID()}`,
       workspace_id: workspaceId,
-      opportunity_id: data.opportunity_id,
+      opportunity_id: data.opportunity_id || null,
       title: data.title,
       statement: data.statement,
       metrics_to_validate: data.metrics_to_validate,
