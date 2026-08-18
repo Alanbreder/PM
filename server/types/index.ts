@@ -94,6 +94,7 @@ export interface Problem {
   created_at: string;
   updated_at: string;
   evidence_count?: number;
+  evidence_ids?: string[];
 }
 
 export interface CreateProblemInput {
@@ -102,6 +103,7 @@ export interface CreateProblemInput {
   impact: 'low' | 'medium' | 'high' | 'critical';
   frequency: 'rare' | 'occasional' | 'frequent' | 'constant';
   evidence_ids?: string[];
+  evidence_id?: string;
 }
 
 export interface UpdateProblemInput {
@@ -125,6 +127,7 @@ export interface Opportunity {
   updated_at: string;
   problem_count?: number;
   problem_id?: string | null;
+  problem_ids?: string[];
 }
 
 export interface CreateOpportunityInput {
