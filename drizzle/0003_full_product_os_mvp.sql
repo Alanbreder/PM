@@ -108,7 +108,8 @@ CREATE TABLE IF NOT EXISTS "customer_segments" (
   "description" text,
   "criteria" jsonb DEFAULT '[]'::jsonb,
   "created_at" timestamp NOT NULL DEFAULT now(),
-  "updated_at" timestamp NOT NULL DEFAULT now()
+  "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_customer_segments_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_customer_segments_workspace" ON "customer_segments" ("workspace_id");
 
@@ -144,6 +145,7 @@ CREATE TABLE IF NOT EXISTS "prds" (
   "version" integer NOT NULL DEFAULT 1,
   "created_at" timestamp NOT NULL DEFAULT now(),
   "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_prds_id_workspace" UNIQUE ("id", "workspace_id"),
   CONSTRAINT "fk_prd_roadmap_workspace" FOREIGN KEY ("roadmap_item_id", "workspace_id")
     REFERENCES "roadmap_items"("id", "workspace_id") ON DELETE SET NULL
 );
@@ -172,6 +174,7 @@ CREATE TABLE IF NOT EXISTS "outcome_reviews" (
   "reviewed_at" timestamp NOT NULL DEFAULT now(),
   "created_at" timestamp NOT NULL DEFAULT now(),
   "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_outcome_reviews_id_workspace" UNIQUE ("id", "workspace_id"),
   CONSTRAINT "fk_outcome_roadmap_workspace" FOREIGN KEY ("roadmap_item_id", "workspace_id")
     REFERENCES "roadmap_items"("id", "workspace_id") ON DELETE SET NULL
 );
@@ -188,7 +191,8 @@ CREATE TABLE IF NOT EXISTS "comments" (
   "author_email" varchar(255) NOT NULL,
   "content" text NOT NULL,
   "created_at" timestamp NOT NULL DEFAULT now(),
-  "updated_at" timestamp NOT NULL DEFAULT now()
+  "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_comments_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_comments_workspace" ON "comments" ("workspace_id");
 CREATE INDEX IF NOT EXISTS "idx_comments_entity" ON "comments" ("entity_type", "entity_id");
@@ -204,7 +208,8 @@ CREATE TABLE IF NOT EXISTS "activity_logs" (
   "actor_name" varchar(255) NOT NULL,
   "actor_email" varchar(255) NOT NULL,
   "details" jsonb DEFAULT '{}'::jsonb,
-  "created_at" timestamp NOT NULL DEFAULT now()
+  "created_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_activity_logs_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_activity_logs_workspace" ON "activity_logs" ("workspace_id");
 CREATE INDEX IF NOT EXISTS "idx_activity_logs_entity" ON "activity_logs" ("entity_type", "entity_id");
@@ -219,7 +224,8 @@ CREATE TABLE IF NOT EXISTS "toolkit_canvases" (
   "entity_id" uuid,
   "canvas_data" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_at" timestamp NOT NULL DEFAULT now(),
-  "updated_at" timestamp NOT NULL DEFAULT now()
+  "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_toolkit_canvases_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_toolkit_canvases_workspace" ON "toolkit_canvases" ("workspace_id");
 CREATE INDEX IF NOT EXISTS "idx_toolkit_canvases_tool_key" ON "toolkit_canvases" ("workspace_id", "tool_key");
