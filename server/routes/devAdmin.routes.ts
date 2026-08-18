@@ -115,18 +115,8 @@ router.post('/login', async (req: Request, res: Response) => {
     let targetWsId = userWorkspaces[0]?.id;
 
     if (!targetWsId) {
-      const existingWs = await dbStore.getWorkspaceById('ws_demo_001');
-      if (existingWs) {
-        try {
-          await dbStore.addWorkspaceMember(existingWs.id, adminUid, 'owner');
-          targetWsId = existingWs.id;
-        } catch {
-          targetWsId = existingWs.id;
-        }
-      } else {
-        const newWs = await dbStore.createWorkspace('Workspace de Desenvolvimento', adminUid, 'Workspace do Administrador Dev');
-        targetWsId = newWs.id;
-      }
+      const newWs = await dbStore.createWorkspace('Workspace de Desenvolvimento', adminUid, 'Workspace do Administrador Dev');
+      targetWsId = newWs.id;
     } else {
       // Ensure owner role
       const member = await dbStore.getWorkspaceMember(targetWsId, adminUid);

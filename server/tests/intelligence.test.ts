@@ -2,16 +2,20 @@ import { dbStore } from '../db/store.js';
 import { intelligenceService } from '../services/intelligence.service.js';
 import { requireRole } from '../middleware/auth.js';
 import { aiRateLimiter } from '../middleware/rate_limit.js';
+import { dbReadyPromise } from '../../src/db/index.js';
 
 async function runIntelligenceTests() {
+  await dbReadyPromise;
   console.log('🧪 Iniciando suíte de testes de Inteligência do Produto (Etapa 7)...');
 
-  const workspaceIdA = 'ws_tenant_A';
-  const workspaceIdB = 'ws_tenant_B';
-
   // Seed user & workspaces
-  await dbStore.findOrCreateUser('usr_admin_1', 'admin@example.com', 'Admin User');
+  const adminUser = await dbStore.findOrCreateUser('usr_admin_1', 'admin@example.com', 'Admin User');
   await dbStore.findOrCreateUser('usr_viewer_1', 'viewer@example.com', 'Viewer User');
+
+  const wsA = await dbStore.createWorkspace('Tenant A', adminUser.uid);
+  const wsB = await dbStore.createWorkspace('Tenant B', adminUser.uid);
+  const workspaceIdA = wsA.id;
+  const workspaceIdB = wsB.id;
 
   // Setup roles
   const mockMemberships: Record<string, string> = {
@@ -56,6 +60,8 @@ async function runIntelligenceTests() {
     title: 'Teste A/B do Formulário',
     description: 'Comparar 3 campos vs 6 campos',
   });
+  await dbStore.updateExperiment(workspaceIdA, expA.id, { status: 'running' });
+  await dbStore.updateExperiment(workspaceIdA, expA.id, { status: 'completed' });
 
   const decA = await dbStore.createDecision(workspaceIdA, {
     experiment_id: expA.id,
@@ -90,7 +96,8 @@ async function runIntelligenceTests() {
 
   // 4. Test: Insight sem source NÃO fabrica fonte artificial
   console.log('🚫 Testando prevenção de fabricação de fontes falsas...');
-  const emptyWorkspaceId = 'ws_empty_test_999';
+  const emptyWs = await dbStore.createWorkspace('Empty Workspace', adminUser.uid);
+  const emptyWorkspaceId = emptyWs.id;
   const emptyInsights = await intelligenceService.generateInsights(emptyWorkspaceId);
   const emptyGapInsight = emptyInsights.find((i) => i.type === 'gap');
   if (emptyGapInsight && emptyGapInsight.sources.length > 0) {

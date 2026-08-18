@@ -577,6 +577,13 @@ export class MemoryStore {
     return { ...ws };
   }
 
+  async getUserRole(workspaceId: string, userId: string): Promise<WorkspaceRole | null> {
+    const member = this.data.workspaceMembers.find(
+      (m) => m.workspace_id === workspaceId && m.user_id === userId
+    );
+    return member ? member.role : null;
+  }
+
   async createWorkspace(name: string, userId: string, description?: string): Promise<Workspace> {
     const id = `ws_${randomUUID()}`;
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
@@ -789,6 +796,12 @@ export class MemoryStore {
       results.push(await this.createEvidence(workspaceId, item));
     }
     return results;
+  }
+
+  async getEvidenceById(workspaceId: string, id: string): Promise<Evidence | null> {
+    const item = this.data.evidences.find((e) => e.workspace_id === workspaceId && e.id === id);
+    if (!item) return null;
+    return { ...item };
   }
 
   // Problems

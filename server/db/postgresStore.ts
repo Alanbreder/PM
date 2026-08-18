@@ -58,6 +58,11 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import { BusinessRuleError } from '../utils/errors.js';
 import { randomUUID } from 'crypto';
 
+export function isValidUUID(val: string | null | undefined): boolean {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
+
 export class PostgresStore {
   // ==========================================
   // 1. USERS & WORKSPACES
@@ -95,6 +100,16 @@ export class PostgresStore {
 
   async createWorkspace(name: string, userId: string, description?: string): Promise<Workspace> {
     try {
+      // Ensure creator user exists in users table to satisfy FK
+      const userExists = await db.select().from(schema.users).where(eq(schema.users.uid, userId)).limit(1);
+      if (userExists.length === 0) {
+        await db.insert(schema.users).values({
+          uid: userId,
+          email: `${userId}@workspace.local`,
+          name: userId,
+        });
+      }
+
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
       const [ws] = await db
         .insert(schema.workspaces)
@@ -126,6 +141,7 @@ export class PostgresStore {
   }
 
   async getWorkspaceById(workspaceId: string): Promise<Workspace | null> {
+    if (!isValidUUID(workspaceId)) return null;
     try {
       const rows = await db.select().from(schema.workspaces).where(eq(schema.workspaces.id, workspaceId)).limit(1);
       if (rows.length === 0) return null;
@@ -230,6 +246,16 @@ export class PostgresStore {
       const existing = await this.getWorkspaceMember(workspaceId, userId);
       if (existing) {
         throw new BusinessRuleError('Usuário já é membro deste workspace');
+      }
+
+      // Ensure user exists to satisfy FK
+      const userExists = await db.select().from(schema.users).where(eq(schema.users.uid, userId)).limit(1);
+      if (userExists.length === 0) {
+        await db.insert(schema.users).values({
+          uid: userId,
+          email: `${userId}@workspace.local`,
+          name: userId,
+        });
       }
 
       const [m] = await db
@@ -2576,7 +2602,7 @@ export class PostgresStore {
         .values({
           workspaceId,
           name: input.name,
-          roleTitle: input.role_title,
+          roleTitle: input.role_title || (input as any).role || 'N/A',
           segment: input.segment,
           description: input.description,
           jobsToBeDone: input.jobs_to_be_done || [],

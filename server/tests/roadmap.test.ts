@@ -1,17 +1,21 @@
 import { dbStore } from '../db/store.js';
 import { createRoadmapItemSchema, updateRoadmapItemSchema } from '../schemas/index.js';
 import { BusinessRuleError } from '../utils/errors.js';
+import { dbReadyPromise } from '../../src/db/index.js';
 
 async function runRoadmapTests() {
+  await dbReadyPromise;
   console.log('🧪 Iniciando suíte de testes de Roadmap Estratégico & Execução (Etapa 8)...');
 
-  const workspaceIdA = 'ws_roadmap_A';
-  const workspaceIdB = 'ws_roadmap_B';
-
   // Seed workspaces & users
-  await dbStore.findOrCreateUser('usr_admin_r', 'admin@example.com', 'Admin User');
+  const adminUser = await dbStore.findOrCreateUser('usr_admin_r', 'admin@example.com', 'Admin User');
   await dbStore.findOrCreateUser('usr_member_r', 'member@example.com', 'Member User');
   await dbStore.findOrCreateUser('usr_viewer_r', 'viewer@example.com', 'Viewer User');
+
+  const wsA = await dbStore.createWorkspace('Roadmap Tenant A', adminUser.uid);
+  const wsB = await dbStore.createWorkspace('Roadmap Tenant B', adminUser.uid);
+  const workspaceIdA = wsA.id;
+  const workspaceIdB = wsB.id;
 
   // Seed discovery chain in Workspace A
   const resA = await dbStore.createResearch(workspaceIdA, {
@@ -60,6 +64,9 @@ async function runRoadmapTests() {
     sample_size: 500,
   });
   await dbStore.updateExperiment(workspaceIdA, expA.id, {
+    status: 'running',
+  });
+  await dbStore.updateExperiment(workspaceIdA, expA.id, {
     status: 'completed',
     results: 'Taxa de conclusão subiu de 45% para 89%',
     learnings: 'Feedback visual eliminou tickets de suporte',
@@ -103,6 +110,9 @@ async function runRoadmapTests() {
   const expB = await dbStore.createExperiment(workspaceIdB, {
     hypothesis_id: hypB.id,
     title: 'Experimento B',
+  });
+  await dbStore.updateExperiment(workspaceIdB, expB.id, {
+    status: 'running',
   });
   await dbStore.updateExperiment(workspaceIdB, expB.id, {
     status: 'completed',

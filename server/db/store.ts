@@ -5,10 +5,7 @@ import { BusinessRuleError } from '../utils/errors.js';
 export { PostgresStore, MemoryStore, BusinessRuleError };
 
 // Primary database store:
-// If DATABASE_URL is present or in production, instantiate PostgresStore.
-// In local/test fallback mode without a PostgreSQL instance, fallback to MemoryStore.
-const usePostgres = Boolean(process.env.DATABASE_URL) || process.env.NODE_ENV === 'production';
+// PostgresStore is the REAL persistent store of the application.
+// No silent fallback to MemoryStore is permitted.
+export const dbStore: PostgresStore = new PostgresStore();
 
-export const dbStore: PostgresStore | MemoryStore = usePostgres
-  ? new PostgresStore()
-  : new MemoryStore();

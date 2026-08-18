@@ -24,8 +24,10 @@ import { outcomeRouter } from './server/routes/outcome.routes.js';
 import { collaborationRouter } from './server/routes/collaboration.routes.js';
 import { toolkitRouter } from './server/routes/toolkit.routes.js';
 import { dashboardRouter } from './server/routes/dashboard.routes.js';
+import { dbReadyPromise } from './src/db/index.js';
 
 async function startServer() {
+  await dbReadyPromise;
   // In production, DATABASE_URL must be strictly set
   if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
     console.error('FATAL: A variável de ambiente DATABASE_URL é obrigatória em produção.');

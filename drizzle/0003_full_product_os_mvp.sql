@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS "objectives" (
   "progress" integer NOT NULL DEFAULT 0,
   "owner_name" varchar(255),
   "created_at" timestamp NOT NULL DEFAULT now(),
-  "updated_at" timestamp NOT NULL DEFAULT now()
+  "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_objectives_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_objectives_workspace" ON "objectives" ("workspace_id");
 
@@ -93,7 +94,8 @@ CREATE TABLE IF NOT EXISTS "personas" (
   "goals" jsonb DEFAULT '[]'::jsonb,
   "behaviors" jsonb DEFAULT '[]'::jsonb,
   "created_at" timestamp NOT NULL DEFAULT now(),
-  "updated_at" timestamp NOT NULL DEFAULT now()
+  "updated_at" timestamp NOT NULL DEFAULT now(),
+  CONSTRAINT "unq_personas_id_workspace" UNIQUE ("id", "workspace_id")
 );
 CREATE INDEX IF NOT EXISTS "idx_personas_workspace" ON "personas" ("workspace_id");
 

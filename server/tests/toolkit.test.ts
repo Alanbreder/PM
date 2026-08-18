@@ -2,12 +2,17 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { dbStore } from '../db/store.js';
 import { evaluateToolWithAICoach } from '../services/gemini.service.js';
+import { dbReadyPromise } from '../../src/db/index.js';
 
 async function runToolkitTests() {
+  await dbReadyPromise;
   console.log('🧪 Iniciando suíte de testes do Product Tools & AI Coach...');
 
-  const wsA = 'ws_tools_test_a';
-  const wsB = 'ws_tools_test_b';
+  const user = await dbStore.findOrCreateUser('usr_toolkit_test', 'toolkit@test.com', 'Toolkit Tester');
+  const wsObjA = await dbStore.createWorkspace('Toolkit Workspace A', user.uid);
+  const wsObjB = await dbStore.createWorkspace('Toolkit Workspace B', user.uid);
+  const wsA = wsObjA.id;
+  const wsB = wsObjB.id;
 
   // 1. Criação e Persistência de Canvas
   console.log('1️⃣ Testando Criação e Persistência de Canvas...');

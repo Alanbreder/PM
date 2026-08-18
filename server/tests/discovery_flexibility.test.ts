@@ -1,6 +1,8 @@
 import { dbStore, BusinessRuleError } from '../db/store.js';
+import { dbReadyPromise } from '../../src/db/index.js';
 
 async function runDiscoveryFlexibilityTests() {
+  await dbReadyPromise;
   console.log('🧪 Iniciando testes de Flexibilidade e Discovery Não-Linear ("Guided when useful, flexible when necessary")...');
 
   // Create test workspaces

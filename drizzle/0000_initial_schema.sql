@@ -1,6 +1,4 @@
 -- Migration 0000: Initial Schema for Product OS SIP
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Users table (mirrors Firebase Auth)
 CREATE TABLE IF NOT EXISTS "users" (
@@ -55,9 +53,11 @@ CREATE INDEX IF NOT EXISTS "idx_researches_workspace" ON "researches" ("workspac
 CREATE TABLE IF NOT EXISTS "evidences" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "workspace_id" uuid NOT NULL REFERENCES "workspaces"("id") ON DELETE cascade,
-  "research_id" uuid NOT NULL,
+  "research_id" uuid,
   "content" text NOT NULL,
   "source" varchar(255),
+  "origin_type" varchar(50),
+  "notes" text,
   "impact_score" integer DEFAULT 3 NOT NULL,
   "tags" jsonb,
   "created_at" timestamp DEFAULT now() NOT NULL,
@@ -132,7 +132,7 @@ CREATE INDEX IF NOT EXISTS "idx_op_workspace" ON "opportunity_problems" ("worksp
 CREATE TABLE IF NOT EXISTS "hypotheses" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "workspace_id" uuid NOT NULL REFERENCES "workspaces"("id") ON DELETE cascade,
-  "opportunity_id" uuid NOT NULL,
+  "opportunity_id" uuid,
   "title" varchar(255) NOT NULL,
   "statement" text NOT NULL,
   "metrics_to_validate" text,

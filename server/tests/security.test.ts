@@ -1,10 +1,12 @@
 import { authenticate, requireWorkspace, requireRole } from '../middleware/auth.js';
 import { devAdminRouter } from '../routes/devAdmin.routes.js';
 import { dbStore } from '../db/store.js';
+import { dbReadyPromise } from '../../src/db/index.js';
 import cors from 'cors';
 import crypto from 'crypto';
 
 async function runSecurityTests() {
+  await dbReadyPromise;
   console.log('🔒 Iniciando suíte de testes de Segurança e Autenticação...');
 
   // Save original env vars
