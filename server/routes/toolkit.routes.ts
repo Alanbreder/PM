@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { dbStore } from '../db/store.js';
 import { requireRole } from '../middleware/auth.js';
+import { aiRateLimiter } from '../middleware/rate_limit.js';
 import { AppRequest } from '../types/index.js';
 import { evaluateToolWithAICoach } from '../services/gemini.service.js';
 
@@ -141,7 +142,7 @@ toolkitRouter.post('/canvases/:id/duplicate', requireRole(['owner', 'admin', 'me
 });
 
 // POST /api/toolkit/ai-coach - Evaluate tool with AI Coach
-toolkitRouter.post('/ai-coach', async (req: AppRequest, res, next) => {
+toolkitRouter.post('/ai-coach', aiRateLimiter, async (req: AppRequest, res, next) => {
   try {
     const workspaceId = req.workspaceId!;
     const { tool_key, tool_title, canvas_data } = req.body;

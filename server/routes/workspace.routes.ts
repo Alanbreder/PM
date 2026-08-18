@@ -51,6 +51,14 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { user_id, role } = req.body;
+      
+      // VULN FIX: Privilege Escalation
+      // An 'admin' cannot add a new 'owner'. Only an 'owner' can do that.
+      if (role === 'owner' && req.workspaceRole !== 'owner') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Apenas proprietários (owners) podem adicionar outros proprietários.' });
+        return;
+      }
+
       const member = await dbStore.addWorkspaceMember(req.workspaceId!, user_id, role);
       res.status(201).json({ success: true, data: member });
     } catch (err) {
@@ -67,7 +75,22 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const { role } = req.body;
-      const member = await dbStore.updateMemberRole(req.workspaceId!, req.params.userId as string, role);
+      const targetUserId = req.params.userId as string;
+
+      // VULN FIX: Privilege Escalation
+      // 1. Admin cannot promote anyone to owner
+      if (role === 'owner' && req.workspaceRole !== 'owner') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Apenas proprietários (owners) podem promover para proprietário.' });
+        return;
+      }
+
+      const targetMember = await dbStore.getWorkspaceMember(req.workspaceId!, targetUserId);
+      if (targetMember && targetMember.role === 'owner' && req.workspaceRole !== 'owner') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Administradores não podem modificar papéis de proprietários.' });
+        return;
+      }
+
+      const member = await dbStore.updateMemberRole(req.workspaceId!, targetUserId, role);
       res.json({ success: true, data: member });
     } catch (err) {
       handleRouteError(res, err, 'UpdateMemberRole');
@@ -81,7 +104,16 @@ router.delete(
   requireRole(['owner', 'admin']),
   async (req: Request, res: Response) => {
     try {
-      await dbStore.removeMember(req.workspaceId!, req.params.userId as string);
+      const targetUserId = req.params.userId as string;
+
+      // VULN FIX: Privilege Escalation
+      const targetMember = await dbStore.getWorkspaceMember(req.workspaceId!, targetUserId);
+      if (targetMember && targetMember.role === 'owner' && req.workspaceRole !== 'owner') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Administradores não podem remover proprietários.' });
+        return;
+      }
+
+      await dbStore.removeMember(req.workspaceId!, targetUserId);
       res.json({ success: true, message: 'Membro removido com sucesso' });
     } catch (err) {
       handleRouteError(res, err, 'RemoveMember');

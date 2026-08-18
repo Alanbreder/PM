@@ -6,6 +6,7 @@ import { createResearchSchema, uuidParamSchema, approveAnalysisSchema } from '..
 import { handleRouteError } from '../utils/errors.js';
 import { applyPagination } from '../utils/pagination.js';
 import { analyzeResearchWithAI } from '../services/gemini.service.js';
+import { aiRateLimiter } from '../middleware/rate_limit.js';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.get('/:id', validate({ params: uuidParamSchema }), async (req: Request, r
   }
 });
 
-router.post('/:id/analyze', requireRole(['owner', 'admin', 'member']), validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
+router.post('/:id/analyze', requireRole(['owner', 'admin', 'member']), aiRateLimiter, validate({ params: uuidParamSchema }), async (req: Request, res: Response) => {
   try {
     const research = await dbStore.getResearchById(req.workspaceId!, req.params.id as string);
     if (!research) {

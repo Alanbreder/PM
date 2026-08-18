@@ -46,20 +46,29 @@ async function startServer() {
       origin: (origin, callback) => {
         // Allow requests with no origin (such as same-origin, curl, server-to-server)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        
+        const isDev = process.env.NODE_ENV !== 'production';
+
+        if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-        // Allow development, Cloud Run preview domains, and localhost
-        if (
-          origin.startsWith('http://localhost') ||
-          origin.startsWith('http://127.0.0.1') ||
-          origin.endsWith('.run.app') ||
-          origin.endsWith('.googleusercontent.com') ||
-          process.env.NODE_ENV !== 'production'
-        ) {
-          return callback(null, true);
+
+        if (isDev) {
+          if (allowedOrigins.includes('*')) {
+            return callback(null, true);
+          }
+          // Strict localhost check
+          if (
+            origin.startsWith('http://localhost:') ||
+            origin.startsWith('http://127.0.0.1:') ||
+            origin.endsWith('.run.app')
+          ) {
+            return callback(null, true);
+          }
         }
-        return callback(null, true);
+        
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
       },
       credentials: true,
     })

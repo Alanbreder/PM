@@ -310,37 +310,47 @@ export class PostgresStore {
 
   async updateMemberRole(workspaceId: string, userId: string, newRole: WorkspaceRole): Promise<WorkspaceMember> {
     try {
-      const member = await this.getWorkspaceMember(workspaceId, userId);
-      if (!member) {
-        throw new BusinessRuleError('Membro não encontrado no workspace.');
-      }
-
-      if (member.role === 'owner' && newRole !== 'owner') {
-        const members = await this.listWorkspaceMembers(workspaceId);
-        const ownerCount = members.filter((m) => m.role === 'owner').length;
-        if (ownerCount <= 1) {
-          throw new BusinessRuleError('Não é possível rebaixar o único proprietário do workspace.');
+      return await db.transaction(async (tx) => {
+        const rows = await tx.select().from(schema.workspaceMembers)
+          .where(and(eq(schema.workspaceMembers.workspaceId, workspaceId), eq(schema.workspaceMembers.userId, userId)))
+          .limit(1)
+          .for('update'); // Lock this member row
+  
+        if (rows.length === 0) {
+          throw new BusinessRuleError('Membro não encontrado no workspace.');
         }
-      }
-
-      const [updated] = await db
-        .update(schema.workspaceMembers)
-        .set({ role: newRole })
-        .where(
-          and(
-            eq(schema.workspaceMembers.workspaceId, workspaceId),
-            eq(schema.workspaceMembers.userId, userId)
+        const member = rows[0];
+  
+        if (member.role === 'owner' && newRole !== 'owner') {
+          // Lock all owner members in this workspace to prevent race condition
+          const owners = await tx.select().from(schema.workspaceMembers)
+            .where(and(eq(schema.workspaceMembers.workspaceId, workspaceId), eq(schema.workspaceMembers.role, 'owner')))
+            .for('update');
+          
+          if (owners.length <= 1) {
+            throw new BusinessRuleError('Não é possível rebaixar o único proprietário do workspace.');
+          }
+        }
+  
+        const [updated] = await tx
+          .update(schema.workspaceMembers)
+          .set({ role: newRole })
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, userId)
+            )
           )
-        )
-        .returning();
-
-      return {
-        id: updated.id,
-        workspace_id: updated.workspaceId,
-        user_id: updated.userId,
-        role: updated.role as WorkspaceRole,
-        created_at: updated.createdAt.toISOString(),
-      };
+          .returning();
+  
+        return {
+          id: updated.id,
+          workspace_id: updated.workspaceId,
+          user_id: updated.userId,
+          role: updated.role as WorkspaceRole,
+          created_at: updated.createdAt.toISOString(),
+        };
+      });
     } catch (err) {
       if (err instanceof BusinessRuleError) throw err;
       console.error('Postgres updateMemberRole error:', err instanceof Error ? err.message : err);
@@ -350,27 +360,36 @@ export class PostgresStore {
 
   async removeMember(workspaceId: string, userId: string): Promise<void> {
     try {
-      const member = await this.getWorkspaceMember(workspaceId, userId);
-      if (!member) {
-        throw new BusinessRuleError('Membro não encontrado no workspace.');
-      }
-
-      if (member.role === 'owner') {
-        const members = await this.listWorkspaceMembers(workspaceId);
-        const ownerCount = members.filter((m) => m.role === 'owner').length;
-        if (ownerCount <= 1) {
-          throw new BusinessRuleError('Não é possível remover o único proprietário do workspace.');
+      await db.transaction(async (tx) => {
+        const rows = await tx.select().from(schema.workspaceMembers)
+          .where(and(eq(schema.workspaceMembers.workspaceId, workspaceId), eq(schema.workspaceMembers.userId, userId)))
+          .limit(1)
+          .for('update');
+  
+        if (rows.length === 0) {
+          throw new BusinessRuleError('Membro não encontrado no workspace.');
         }
-      }
-
-      await db
-        .delete(schema.workspaceMembers)
-        .where(
-          and(
-            eq(schema.workspaceMembers.workspaceId, workspaceId),
-            eq(schema.workspaceMembers.userId, userId)
-          )
-        );
+        const member = rows[0];
+  
+        if (member.role === 'owner') {
+          const owners = await tx.select().from(schema.workspaceMembers)
+            .where(and(eq(schema.workspaceMembers.workspaceId, workspaceId), eq(schema.workspaceMembers.role, 'owner')))
+            .for('update');
+            
+          if (owners.length <= 1) {
+            throw new BusinessRuleError('Não é possível remover o único proprietário do workspace.');
+          }
+        }
+  
+        await tx
+          .delete(schema.workspaceMembers)
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, workspaceId),
+              eq(schema.workspaceMembers.userId, userId)
+            )
+          );
+      });
     } catch (err) {
       if (err instanceof BusinessRuleError) throw err;
       console.error('Postgres removeMember error:', err instanceof Error ? err.message : err);
@@ -1577,6 +1596,15 @@ export class PostgresStore {
     try {
       const saved: ProductInsight[] = [];
       for (const ins of insights) {
+        if (ins.sources) {
+          for (const src of ins.sources) {
+            const belongs = await this.verifyEntityBelongsToWorkspace(workspaceId, src.entity_type, src.entity_id);
+            if (!belongs) {
+              throw new BusinessRuleError('A fonte referenciada no insight não existe ou não pertence a este workspace.');
+            }
+          }
+        }
+
         const [inserted] = await db
           .insert(schema.productInsights)
           .values({
@@ -1924,6 +1952,15 @@ export class PostgresStore {
     try {
       const existing = await this.getRoadmapItemById(workspaceId, id);
       if (!existing) throw new BusinessRuleError('Item de roadmap não encontrado neste workspace.');
+
+      if (input.decision_id) {
+        const dec = await this.getDecisionById(workspaceId, input.decision_id);
+        if (!dec) throw new BusinessRuleError('Decisão vinculada não encontrada neste workspace.');
+      }
+      if (input.opportunity_id) {
+        const opp = await this.getOpportunityById(workspaceId, input.opportunity_id);
+        if (!opp) throw new BusinessRuleError('Oportunidade vinculada não encontrada neste workspace.');
+      }
 
       const updateFields: any = { updatedAt: new Date() };
       if (input.title !== undefined) updateFields.title = input.title;
@@ -2595,6 +2632,37 @@ export class PostgresStore {
     }
   }
 
+  async getPersonaById(workspaceId: string, personaId: string): Promise<Persona | null> {
+    try {
+      const rows = await db
+        .select()
+        .from(schema.personas)
+        .where(and(eq(schema.personas.id, personaId), eq(schema.personas.workspaceId, workspaceId)))
+        .limit(1);
+
+      if (rows.length === 0) return null;
+
+      const p = rows[0];
+      return {
+        id: p.id,
+        workspace_id: p.workspaceId,
+        name: p.name,
+        role_title: p.roleTitle,
+        segment: p.segment || undefined,
+        description: p.description || undefined,
+        jobs_to_be_done: (p.jobsToBeDone as string[]) || [],
+        pains: (p.pains as string[]) || [],
+        goals: (p.goals as string[]) || [],
+        behaviors: (p.behaviors as string[]) || [],
+        created_at: p.createdAt.toISOString(),
+        updated_at: p.updatedAt.toISOString(),
+      };
+    } catch (err) {
+      console.error('Postgres getPersonaById error:', err instanceof Error ? err.message : err);
+      return null;
+    }
+  }
+
   async createPersona(workspaceId: string, input: CreatePersonaInput): Promise<Persona> {
     try {
       const [inserted] = await db
@@ -2703,6 +2771,14 @@ export class PostgresStore {
     entityId: string
   ): Promise<void> {
     try {
+      const persona = await this.getPersonaById(workspaceId, personaId);
+      if (!persona) throw new BusinessRuleError('Persona não encontrada neste workspace.');
+
+      const belongs = await this.verifyEntityBelongsToWorkspace(workspaceId, entityType, entityId);
+      if (!belongs) {
+        throw new BusinessRuleError('A entidade referenciada não existe ou não pertence a este workspace.');
+      }
+
       await db.insert(schema.entityPersonas).values({
         workspaceId,
         personaId,
@@ -2710,6 +2786,7 @@ export class PostgresStore {
         entityId,
       });
     } catch (err) {
+      if (err instanceof BusinessRuleError) throw err;
       console.error('Postgres linkEntityPersona error:', err instanceof Error ? err.message : err);
       throw new Error('Falha ao associar persona à entidade');
     }
@@ -2962,6 +3039,15 @@ export class PostgresStore {
 
   async createOutcomeReview(workspaceId: string, input: CreateOutcomeReviewInput): Promise<OutcomeReview> {
     try {
+      if (input.roadmap_item_id) {
+        const item = await this.getRoadmapItemById(workspaceId, input.roadmap_item_id);
+        if (!item) throw new BusinessRuleError('Item do roadmap vinculado não encontrado neste workspace.');
+      }
+      if (input.prd_id) {
+        const prd = await this.getPRDById(workspaceId, input.prd_id);
+        if (!prd) throw new BusinessRuleError('PRD vinculado não encontrado neste workspace.');
+      }
+
       let newProblemId: string | null = null;
       if (input.refeed_to_discovery) {
         const prob = await this.createProblem(workspaceId, {
@@ -3142,6 +3228,13 @@ export class PostgresStore {
     }
   ): Promise<void> {
     try {
+      if (params.entity_type && params.entity_id) {
+        const belongs = await this.verifyEntityBelongsToWorkspace(workspaceId, params.entity_type, params.entity_id);
+        if (!belongs && params.entity_type !== 'workspace' && params.entity_type !== 'workspace_member') {
+          throw new BusinessRuleError('A entidade referenciada não existe ou não pertence a este workspace.');
+        }
+      }
+
       await db.insert(schema.activityLogs).values({
         workspaceId,
         entityType: params.entity_type,
@@ -3249,8 +3342,44 @@ export class PostgresStore {
     }
   }
 
+  async verifyEntityBelongsToWorkspace(workspaceId: string, entityType: string, entityId: string): Promise<boolean> {
+    try {
+      let table: any;
+      switch (entityType) {
+        case 'research': table = schema.researches; break;
+        case 'evidence': table = schema.evidences; break;
+        case 'problem': table = schema.problems; break;
+        case 'opportunity': table = schema.opportunities; break;
+        case 'hypothesis': table = schema.hypotheses; break;
+        case 'experiment': table = schema.experiments; break;
+        case 'decision': table = schema.decisions; break;
+        case 'roadmap_item': table = schema.roadmapItems; break;
+        case 'prd': table = schema.prds; break;
+        case 'outcome_review': table = schema.outcomeReviews; break;
+        case 'objective': table = schema.objectives; break;
+        case 'key_result': table = schema.keyResults; break;
+        case 'persona': table = schema.personas; break;
+        case 'customer_segment': table = schema.customerSegments; break;
+        case 'prioritization': table = schema.prioritizations; break;
+        default: return false;
+      }
+      
+      const rows = await db.select({ id: table.id }).from(table).where(and(eq(table.id, entityId), eq(table.workspaceId, workspaceId))).limit(1);
+      return rows.length > 0;
+    } catch (err) {
+      return false;
+    }
+  }
+
   async saveToolkitCanvas(workspaceId: string, input: CreateToolkitCanvasInput): Promise<ToolkitCanvas> {
     try {
+      if (input.entity_type && input.entity_id) {
+        const belongs = await this.verifyEntityBelongsToWorkspace(workspaceId, input.entity_type, input.entity_id);
+        if (!belongs) {
+          throw new BusinessRuleError('A entidade referenciada não existe ou não pertence a este workspace.');
+        }
+      }
+
       if (input.id) {
         const existing = await this.getToolkitCanvasById(workspaceId, input.id);
         if (existing) {
